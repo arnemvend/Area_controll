@@ -9,6 +9,7 @@
 
 
 class ABoom;
+class AMainTower;
 class UStaticMeshComponent;
 class UMaterialInterface;
 class UStaticMesh;
@@ -39,9 +40,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") FColor YourColorGround;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") FColor EnemyColorGround;
 
+
 	UFUNCTION() void SetDamageFunc();
 
-	
+
+	//"Logical functions for network search"---------------------------------------------------------------------------->
+	UFUNCTION() void NetOff();
+	UFUNCTION() void ReEnter(FName AName);
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") int Wave;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") TArray<int> AdressTower;
+
 
 protected:
 
@@ -90,30 +100,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") bool IsClicked;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Variables") bool CanDie;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Variables") int MassEnergy;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") int Wave;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") int MaxWave;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") int NotNet;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") int EnergyPoint;
+	
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") TArray<int> AdressTower;
+	
 
 	
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float Influence;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") float UpBorder;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") float DownBorder;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") float RightBorder;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") float LeftBorder;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float EnergyStep;
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") TArray<ATower*> StepTowers;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") TArray<ATower*> NextTowers;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") TArray<ATower*> PSNearestTowers;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") TArray<ATower*> ChildTowers;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") ATower* Main;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") ATower* MainEnemy;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") AMainTower* Main;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") AMainTower* MainEnemy;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") ATower* TemporaryTower;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ABoom> SpownBoom;
@@ -140,19 +145,13 @@ protected:
 		AController* InstigatedBy, AActor* DamageCauser);
 
 
-	//"Logical functions for Energy"------------------------------------------------------------------------------------>
-	UFUNCTION() void CheckEnergy();//Step of area calculating
-	UFUNCTION() void CheckNew(ATower* Tower);
-	UFUNCTION() void ReloadEnergy(ATower* Tower, FName DName);
+	
 
 
 
 	//"Logical functions for network search"---------------------------------------------------------------------------->
 	UFUNCTION() void IsMainFunc();
-	UFUNCTION() void ReEnter(FName AName);
-	UFUNCTION() void NetOff();
-	UFUNCTION() void MainFinder(ATower* TTower);
-	UFUNCTION() void ReFinder(FName BName);
+	
 	UFUNCTION(BlueprintCallable) void TowerDestroy();
 	UFUNCTION() void ColorsFunc(FColor Color);
 	UFUNCTION() void CheckStep(int MWave);

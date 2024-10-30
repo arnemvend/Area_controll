@@ -10,6 +10,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Tower/MainTower.h"
 
 
 ATower::ATower()
@@ -92,6 +93,9 @@ ATower::ATower()
 	//"Set parameters of Widget"-------------------------------------------------------------------------------->
 	TowerWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
 	TowerWidget->SetupAttachment(RootComponent);
+	TowerWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	TowerWidget->SetDrawSize(FVector2D(820.0f, 320.0f));
+
 
 
 
@@ -115,7 +119,6 @@ ATower::ATower()
 	//"Set other variables"------------------------------------------------------------------------------------->
 	ChildTowers.Empty(); //The towers are further down the network
 	TemporaryTower = nullptr; //The tower is higher on the network
-	MassEnergy = 0; //current energy generate
 	Wave = 0;
 	MaxWave = 0;
 	NotNet = 0;
@@ -266,102 +269,6 @@ void ATower::Repeater()
 
 
 
-//-----------------------THERE ARE FUNCTIONS FOR CHECK ENERGY-------------------------------------------------//
-//"Set border of area controll"-------------------------------------------------------------------------------->
-void ATower::CheckNew(ATower* Tower)
-{
-	//defining the boundaries of the rectangle to check
-	if (GetActorLocation().Y > Tower->UpBorder)
-	{
-		Tower->UpBorder = GetActorLocation().Y;
-	}
-	if (GetActorLocation().Y < Tower->DownBorder)
-	{
-		Tower->DownBorder = GetActorLocation().Y;
-	}
-	if (GetActorLocation().X > Tower->RightBorder)
-	{
-		Tower->RightBorder = GetActorLocation().X;
-	}
-	if (GetActorLocation().X < Tower->LeftBorder)
-	{
-		Tower->LeftBorder = GetActorLocation().X;
-	}
-}
-
-
-
-
-//"Calculation energy pool"------------------------------------------------------------------------------------->
-void ATower::CheckEnergy()
-{
-	GetWorldTimerManager().SetTimer(Timer0, [this]()
-	{
-			MassEnergy = 0;
-			FVector RunCheck = FVector(LeftBorder - CollisionEnergy->GetScaledCapsuleRadius(),
-				UpBorder + CollisionEnergy->GetScaledCapsuleHalfHeight(), 140.0f);
-			//checking for hits to the energy trigger in the rectangle area
-			while (RunCheck.X <= RightBorder + CollisionEnergy->GetScaledCapsuleRadius())
-			{
-				while (RunCheck.Y >= DownBorder - CollisionEnergy->GetScaledCapsuleRadius())
-				{
-					FVector End;
-					End.X = RunCheck.X;
-					End.Y = RunCheck.Y;
-					End.Z = -200.0f;
-					FHitResult HitResult;
-					ECollisionChannel TraceChannel = ECC_Camera;
-					FCollisionQueryParams TraceParams;
-					if ([[maybe_unused]] bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, RunCheck, End, TraceChannel, TraceParams))
-					{
-						if (HitResult.Location.Z > 0 && HitResult.Component->ComponentHasTag(Name))
-						{
-							MassEnergy = MassEnergy + EnergyPoint;
-							//DrawDebugLine(GetWorld(), RunCheck, HitResult.ImpactPoint, FColor::Green, false, 2.0f, 0, 1.0f);
-							//DrawDebugPoint(GetWorld(), HitResult.ImpactPoint, 10.0f, FColor::Red, false, 2.0f);
-						}
-					}
-					RunCheck.Y = RunCheck.Y - EnergyStep;
-				}
-				RunCheck.Y = UpBorder + CollisionEnergy->GetScaledCapsuleHalfHeight();
-				RunCheck.X = RunCheck.X + EnergyStep;
-			}
-		//UE_LOG(LogTemp, Warning, TEXT("%d"), MassEnergy);
-	}, 0.5f, false);
-}
-
-
-// "Reload area for energy"------------------------------------------------------------------------------------->
-void ATower::ReloadEnergy(ATower* Tower, FName DName)
-{
-	//updating the dimensions of the energy calculation rectangle
-	Tower->UpBorder = Tower->GetActorLocation().Y;
-	Tower->DownBorder = Tower->GetActorLocation().Y;
-	Tower->RightBorder = Tower->GetActorLocation().X;
-	Tower->LeftBorder = Tower->GetActorLocation().X;
-	TArray<AActor*> ActorsOfClass;
-	UGameplayStatics::GetAllActorsWithTag(GetWorld(), DName, ActorsOfClass);
-	//overwriting borders by tower coordinates
-	ATower* DTower{};
-	if (ActorsOfClass.Num() > 0)
-	{
-		for (int i = 0; i < ActorsOfClass.Num(); i++)
-		{
-			if (ActorsOfClass[i])
-			{
-				DTower = Cast<ATower>(ActorsOfClass[i]);
-			}
-
-			if (DTower && DTower != this)
-			{
-				DTower->CheckNew(Tower);
-			}
-		}
-	}
-	DTower = nullptr;
-	ActorsOfClass.Empty();
-}
-
 
 
 
@@ -376,19 +283,19 @@ void ATower::IsMainFunc()
 	UGameplayStatics::GetAllActorsWithTag(GetWorld(), NameMain, ActorsWithTag);
 	if (ActorsWithTag.Num() > 0 && ActorsWithTag[0])
 	{
-		Main = Cast<ATower>(ActorsWithTag[0]);//set Main reference
+		Main = Cast<AMainTower>(ActorsWithTag[0]);//set Main reference
 		if (Main == this)
 		{
 			TowMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Buildings/Materials/MI_TowerM.MI_TowerM'"));
 			TowerMesh->SetMaterial(0, TowMaterial);
 			DTowMaterial = TowerMesh->CreateDynamicMaterialInstance(0, TowMaterial);
 			ColorsFunc(YourColorGround);
-			UpBorder = GetActorLocation().Y;
-			DownBorder = GetActorLocation().Y;
-			RightBorder = GetActorLocation().X;
-			LeftBorder = GetActorLocation().X;
+			Main->UpBorder = GetActorLocation().Y;
+			Main->DownBorder = GetActorLocation().Y;
+			Main->RightBorder = GetActorLocation().X;
+			Main->LeftBorder = GetActorLocation().X;
 			AdressTower.Add(0);
-			CheckEnergy();
+			Main->CheckEnergy();
 		}
 	}
 	ActorsWithTag.Empty();
@@ -396,19 +303,19 @@ void ATower::IsMainFunc()
 	UGameplayStatics::GetAllActorsWithTag(GetWorld(), NameMainEnemy, ActorsWithTag);
 	if (ActorsWithTag.Num() > 0 && ActorsWithTag[0])
 	{
-		MainEnemy = Cast<ATower>(ActorsWithTag[0]);//set MainEnemy reference
+		MainEnemy = Cast<AMainTower>(ActorsWithTag[0]);//set MainEnemy reference
 		if (MainEnemy == this)
 		{
 			TowMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Buildings/Materials/MI_TowerM.MI_TowerM'"));
 			TowerMesh->SetMaterial(0, TowMaterial);
 			DTowMaterial = TowerMesh->CreateDynamicMaterialInstance(0, TowMaterial);
 			ColorsFunc(EnemyColorGround);
-			UpBorder = GetActorLocation().Y;
-			DownBorder = GetActorLocation().Y;
-			RightBorder = GetActorLocation().X;
-			LeftBorder = GetActorLocation().X;
+			MainEnemy->UpBorder = GetActorLocation().Y;
+			MainEnemy->DownBorder = GetActorLocation().Y;
+			MainEnemy->RightBorder = GetActorLocation().X;
+			MainEnemy->LeftBorder = GetActorLocation().X;
 			AdressTower.Add(0);
-			CheckEnergy();
+			MainEnemy->CheckEnergy();
 		}
 		if(Main != this && MainEnemy != this)
 		{
@@ -555,7 +462,7 @@ void ATower::SetParam()
 		ColorsFunc(YourColorGround);
 		Main->NotNet = 0;
 		Main->ReFinder(Main->Name);
-		CheckNew(Main);
+		Main->CheckNew(this);
 	}
 	if (Name == FName(TEXT("YourEnemy")))
 	{
@@ -563,120 +470,11 @@ void ATower::SetParam()
 		ColorsFunc(EnemyColorGround);
 		MainEnemy->NotNet = 0;
 		MainEnemy->ReFinder(MainEnemy->Name);
-		CheckNew(MainEnemy);
+		MainEnemy->CheckNew(this);
 	}
 }
 
 
-
-//"Main starts finder's operations"----------------------------------------------------------------------------->
-void ATower::MainFinder(ATower* TTower)
-{
-	/*
-	GetWorldTimerManager().SetTimer(Timer1, [this, TTower]()
-	{*/
-			TArray<AActor*> ActorsOfThisClass;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATower::StaticClass(), ActorsOfThisClass);
-			//set array for towers deactivate them
-			ATower* PoofTower{};
-			if (ActorsOfThisClass.Num() > 0)
-			{
-				for (int i = 0; i < ActorsOfThisClass.Num(); i++)
-				{
-					if (ActorsOfThisClass[i])
-					{
-						PoofTower = Cast<ATower>(ActorsOfThisClass[i]);
-					}
-
-					if (PoofTower && TTower && PoofTower->ActorHasTag(Name) && Main != PoofTower && MainEnemy != PoofTower
-						&& PoofTower->AdressTower.Num() > TTower->AdressTower.Num())
-					{
-						if (PoofTower->AdressTower[TTower->Wave] == TTower->AdressTower.Last())
-						{
-							PoofTower->NetOff();
-						}
-					}
-				}
-			}
-			PoofTower = nullptr;
-			if (TTower)
-			{
-				TTower->NetOff();
-				TTower->Destroy();
-				CheckEnergy();
-			}
-
-			NotNet = 0;
-			ReFinder(Name);//search on	
-
-			
-	/*}, 0.01f, false);*/
-
-	GetWorldTimerManager().SetTimer(Timer2, [this]()
-	{
-			if (NextTowers.Num() > 0)
-			{
-				for (int i = 0; i < NextTowers.Num(); i++)
-				{
-					if (NextTowers[i])
-					{
-						if (Main == this)
-						{
-							ATower* Tow = NextTowers[i];
-							Tow->ReEnter(MainEnemy->Name);
-						}
-						if (MainEnemy == this)
-						{
-							ATower* Tow = NextTowers[i];
-							Tow->ReEnter(Main->Name);
-						}
-					}
-				}
-			}
-	}, 0.1f, false);
-}
-
-
-//"Finder's operations"----------------------------------------------------------------------------->
-void ATower::ReFinder(FName BName)
-{
-	NextTowers.Empty();
-	TArray<AActor*> OfThisClass;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATower::StaticClass(), OfThisClass);
-	ATower* RSTower{};
-	if (OfThisClass.Num() > 0)
-	{
-		for (int i = 0; i < OfThisClass.Num(); i++)
-		{
-			if (OfThisClass[i])
-			{
-				RSTower = Cast<ATower>(OfThisClass[i]);
-			}
-			if (RSTower && RSTower->Tags.Num() == 0 && Main != RSTower && MainEnemy != RSTower)
-			{
-				NextTowers.AddUnique(RSTower);
-			}
-		}
-	}
-	RSTower = nullptr;
-	//the search will stop when the number of disabled towers stops changing
-	if(NextTowers.Num() != NotNet)
-	{
-		NotNet = NextTowers.Num();
-		for( int i = 0; i < NextTowers.Num(); i++)
-		{
-			if(NextTowers[i])
-			{
-				ATower* Tow = NextTowers[i];
-				Tow->ReEnter(BName);
-			}
-		}
-		NextTowers.Empty();
-		ReFinder(BName);
-	}
-	Main->CheckEnergy();
-	MainEnemy->CheckEnergy();
-}
 
 
 
@@ -939,11 +737,11 @@ void ATower::NetOff()
 	ChildTowers.Empty();
 	if (Name == FName(TEXT("Your")))
 	{
-		ReloadEnergy(Main, Name);
+		Main->ReloadEnergy(Name);
 	}
 	if (Name == FName(TEXT("YourEnemy")))
 	{
-		ReloadEnergy(MainEnemy, Name);
+		MainEnemy->ReloadEnergy(Name);
 	}
 }
 

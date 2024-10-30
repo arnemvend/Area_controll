@@ -150,7 +150,9 @@ void AAreaControll_PlayerController::BuildCreatorMove(const FVector Loc)
 	{
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
 		BuildCreator->MovingFunc(Position, 1.0f);
-		PlayerCamera->CameraMove(FVector2D(Loc.X, Loc.Y), GEngine->GameViewport->Viewport->GetSizeXY());
+		VPSize.X = GEngine->GameViewport->Viewport->GetSizeXY().X;
+		VPSize.Y = GEngine->GameViewport->Viewport->GetSizeXY().Y;
+		PlayerCamera->CameraMove(FVector2D(Loc.X, Loc.Y), VPSize);
 	}
 }
 

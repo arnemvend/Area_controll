@@ -49,6 +49,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float InitDistance;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") FVector2D Position;
+	UPROPERTY() FVector2D VPSize;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") bool CreatorIsHere;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") bool IsPinch;
