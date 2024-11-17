@@ -47,6 +47,7 @@ ABuildCreator::ABuildCreator()
 
 	IsReady = false;//can or can't building new tower
 	NewColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.0f);
+	i = 0;
 }
 
 
@@ -110,14 +111,16 @@ void ABuildCreator::OnOverlapEnd
 
 
 //"Control location of this Actor"---------------------------------------------------------------------------->
-void ABuildCreator::MovingFunc(FVector2D Loc, float Scale)
+void ABuildCreator::MovingFunc(FVector2D Loc)
 {
-	FVector Location;
-	Location.X = Loc.X * Scale;
-	Location.Y = Loc.Y * Scale;
-	Location.Z = 0.1f;
-
-	SetActorLocation(Location);
+	if (i < 2)
+	{
+		i++;
+	}
+	else
+	{
+		SetActorLocation(FVector(Loc.X, Loc.Y, 0.1f));
+	}
 }
 
 
@@ -126,6 +129,7 @@ void ABuildCreator::MovingFunc(FVector2D Loc, float Scale)
 void ABuildCreator::DestroyerFunc()
 {
 	ABuildCreator::SetActorLocation(FVector(0.0f, 0.0f, -2000.0f));
+	GetWorldTimerManager().ClearTimer(Timer0);
 	Destroy();
 }
 
@@ -140,6 +144,14 @@ void ABuildCreator::BeginPlay()
 	DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
 	DynamicMaterial0 = StaticMesh0->CreateDynamicMaterialInstance(0, CreatorMaterial0);
 	DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor); //set color
+
+	GetWorldTimerManager().SetTimer(Timer0, [this]()
+		{
+			if (GetActorLocation().Z < 0.0f)
+			{
+				DestroyerFunc();
+			}
+		}, 0.1f, false);
 }
 
 

@@ -20,14 +20,17 @@ public:
 	
 	APlayerCamera();
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components") UCameraComponent* GamerCamera;
+
 	virtual void Tick(float DeltaTime) override;
 
 	
 	//"Declare function for moving this Pawn"------------------------------------------------------------------->
 	UFUNCTION(BlueprintCallable) void StartTouchMove(FVector2D Loc);
 	UFUNCTION(BlueprintCallable) void TouchMove(FVector2D Loc);
-	UFUNCTION(BlueprintCallable) void CameraMove(FVector2D Loc, FVector2D ScreenSize);
-	UFUNCTION(BlueprintCallable) void CameraZoom(float A, float B);
+	UFUNCTION(BlueprintCallable) void CameraMove(FVector2D Loc, FIntPoint ScreenSize);
+	UFUNCTION(BlueprintCallable) void CameraZoom(float A);
 
 
 protected:
@@ -38,7 +41,7 @@ protected:
 
 	//"Declare components"-------------------------------------------------------------------------------------->
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components") USpringArmComponent* GamerSpringArm;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components") UCameraComponent* GamerCamera;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components") UFloatingPawnMovement* GamerPawnMovement;
 
 
@@ -49,8 +52,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float LenghtMax;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float LenghtMin;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float SizeWorld;
-	FVector2D StartTouchWorldLoc;
-	FVector2D TouchWorldLoc;
+	UPROPERTY() FVector2D StartTouchWorldLoc;
 
 
 

@@ -47,15 +47,14 @@ void APlayerCamera::StartTouchMove(FVector2D Loc)
 
 void APlayerCamera::TouchMove(FVector2D Loc)
 {
-	TouchWorldLoc = Loc;
 	FVector DeltaLoc;
 	FVector ActorLocation = GetActorLocation();
 
 	//check direction and boundaries of the world on the x-axis
-	if(((ActorLocation.X <= SizeWorld) || ((StartTouchWorldLoc.X - TouchWorldLoc.X) < 0)) 
-		&& ((ActorLocation.X >= -SizeWorld) || ((StartTouchWorldLoc.X - TouchWorldLoc.X) > 0)))
+	if(((ActorLocation.X <= SizeWorld) || ((StartTouchWorldLoc.X - Loc.X) < 0))
+		&& ((ActorLocation.X >= -SizeWorld) || ((StartTouchWorldLoc.X - Loc.X) > 0)))
 	{
-		DeltaLoc.X = (StartTouchWorldLoc.X - TouchWorldLoc.X) * SpeedCameraMove;
+		DeltaLoc.X = (StartTouchWorldLoc.X - Loc.X) * SpeedCameraMove;
 	}
 	else
 	{
@@ -63,10 +62,10 @@ void APlayerCamera::TouchMove(FVector2D Loc)
 	}
 
 	//check direction and boundaries of the world on the y-axis
-	if (((ActorLocation.Y <= SizeWorld) || ((StartTouchWorldLoc.Y - TouchWorldLoc.Y) < 0)) 
-		&& ((ActorLocation.Y >= -SizeWorld) || ((StartTouchWorldLoc.Y - TouchWorldLoc.Y) > 0)))
+	if (((ActorLocation.Y <= SizeWorld) || ((StartTouchWorldLoc.Y - Loc.Y) < 0))
+		&& ((ActorLocation.Y >= -SizeWorld) || ((StartTouchWorldLoc.Y - Loc.Y) > 0)))
 	{
-		DeltaLoc.Y = (StartTouchWorldLoc.Y - TouchWorldLoc.Y) * SpeedCameraMove;
+		DeltaLoc.Y = (StartTouchWorldLoc.Y - Loc.Y) * SpeedCameraMove;
 	}
 	else
 	{
@@ -76,13 +75,13 @@ void APlayerCamera::TouchMove(FVector2D Loc)
 	DeltaLoc.Z = 0;
 
 	AddActorWorldOffset(DeltaLoc);
-	StartTouchWorldLoc = TouchWorldLoc;
+	StartTouchWorldLoc = Loc;
 }
 
 
 
 //"BuildCreator camera move control"------------------------------------------------------------------------------>
-void APlayerCamera::CameraMove(FVector2D Loc, FVector2D ScreenSize)
+void APlayerCamera::CameraMove(FVector2D Loc, FIntPoint ScreenSize)
 {
 	FVector ActorLocation = GetActorLocation();
 
@@ -107,20 +106,18 @@ void APlayerCamera::CameraMove(FVector2D Loc, FVector2D ScreenSize)
 
 
 //"Touch camera zoom control"------------------------------------------------------------------------------------->
-void APlayerCamera::CameraZoom(float A, float B)
+void APlayerCamera::CameraZoom(float A)
 {
-	if (A != B)
+	if (A != 0.0f)
 	{
-		if (A < B)
+		GamerSpringArm->TargetArmLength = GamerSpringArm->TargetArmLength - (A * SpeedCameraZoom);
+		if (GamerSpringArm->TargetArmLength > LenghtMax)
 		{
-			GamerSpringArm->TargetArmLength =
-				FMath::Clamp(GamerSpringArm->TargetArmLength + ((1 - FMath::Clamp(A / B, 0, 1)) * SpeedCameraZoom), LenghtMin, LenghtMax);
+			GamerSpringArm->TargetArmLength = LenghtMax;
 		}
-
-		if (A > B)
+		if (GamerSpringArm->TargetArmLength < LenghtMin)
 		{
-			GamerSpringArm->TargetArmLength =
-				FMath::Clamp(GamerSpringArm->TargetArmLength + ((FMath::Clamp(B / A, 0, 1) - 1) * SpeedCameraZoom), LenghtMin, LenghtMax);
+			GamerSpringArm->TargetArmLength = LenghtMin;
 		}
 	}
 }

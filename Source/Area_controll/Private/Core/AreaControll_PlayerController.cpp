@@ -1,9 +1,10 @@
 // Copyright (c) Konstantin Pozdeev. All rights reserved.
 
 #include "Core/AreaControll_PlayerController.h"
+
+#include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCamera.h"
 #include "Creator/BuildCreator.h"
-//#include "Functions/MyBlueprintFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Map/GroundActor.h"
 #include "Tower/Construction.h"
@@ -11,17 +12,23 @@
 
 
 
+
+
+
+
 AAreaControll_PlayerController::AAreaControll_PlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	InitDistance = 0.00001f;
-
+	InitDistance = 0.0f;
 	CreatorIsHere = false;
 	IsPinch = false;
-	CanStart = true;
 	CanPress = true;
+	IsTouch1 = false;
+	IsTouch2 = false;
 }
+
+
 
 
 void AAreaControll_PlayerController::FindReferences()
@@ -40,16 +47,16 @@ void AAreaControll_PlayerController::FindReferences()
 			}
 		}
 	}
-	
 }
+
 
 
 
 void AAreaControll_PlayerController::OnMouseWheelAxis(float Value)
 {
-	if (PlayerCamera && Value != 0.0f)
+	if (PlayerCamera && Value != 0.0f && (IsValid(BuildCreator) == false || CreatorIsHere == false))
 	{
-		PlayerCamera->CameraZoom(Value, 0.0f);
+		PlayerCamera->CameraZoom(Value);
 	}
 }
 
@@ -57,22 +64,38 @@ void AAreaControll_PlayerController::OnMouseWheelAxis(float Value)
 
 void AAreaControll_PlayerController::OnPinchAxis(float Value)
 {
-	if (!BuildCreator && IsPinch && PlayerCamera && Value != 0.0f)
+	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
+	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
+
+	if (PlayerCamera && Value != 0.0f && (IsValid(BuildCreator) == false || CreatorIsHere == false))
 	{
-		PlayerCamera->CameraZoom(Value, InitDistance);
-		InitDistance = Value;
+		if (IsTouch1 && IsTouch2)
+		{
+			if (InitDistance == 0.0f)
+			{
+				InitDistance = (Loc2 - Loc1).Length();
+			}
+			CurrentDistance = (Loc2 - Loc1).Length();
+			PlayerCamera->CameraZoom(FMath::Clamp(((CurrentDistance - InitDistance) / InitDistance) * 2.5f, -1.0f, 1.0f));
+			InitDistance = CurrentDistance;
+		}
 	}
 }
 
 
+
 void AAreaControll_PlayerController::OnPinchPress()
 {
-	if (!BuildCreator && PlayerCamera)
+	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
+	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
+
+	if (IsValid(BuildCreator) == false && PlayerCamera && CreatorIsHere == false)
 	{
 		IsPinch = true;
 		if (CanPress)
 		{
-			InitDistance = 1.0f;
+			InitDistance = 0.0f;
+			CurrentDistance = 0.0f;
 			CanPress = false;
 		}
 	}
@@ -81,38 +104,33 @@ void AAreaControll_PlayerController::OnPinchPress()
 
 void AAreaControll_PlayerController::OnPinchReleas()
 {
+	InitDistance = 0.0f;
+	CurrentDistance = 0.0f;
 	GetWorldTimerManager().SetTimer(Timer0, [this]()
 	{
+		CanPress = true;
 		IsPinch = false;
-		if (CanPress)
-		{
-			InitDistance = 1.0f;
-			CanPress = false;
-		}
-
-	}, 0.2f, false);
+	}, 0.1f, false);
 }
 
 
 void AAreaControll_PlayerController::OnTouchPress(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
-	if (IsValid(BuildCreator) == false && !IsPinch)
+	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
+	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
+
+	if (IsValid(BuildCreator) == false  && IsPinch == false  && IsTouch1  && IsTouch2 == false && CreatorIsHere == false)
 	{
-		if (CanStart)
-		{
-			CanStart = false;
-			TouchToWorld(Loc.X, Loc.Y, OutActors);
-			PlayerCamera->StartTouchMove(Position);
-		}
+		TouchToWorld(Loc.X, Loc.Y, OutActors);
+		PlayerCamera->StartTouchMove(Position);
+		MyLoc = Loc;
 	}
-	MyLoc = Loc;
 }
 
 
 void AAreaControll_PlayerController::OnTouchReleas(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
-	CanStart = true;
-	if (BuildCreator)
+	if (BuildCreator && CreatorIsHere)
 	{
 		if (BuildCreator->IsReady)
 		{
@@ -124,7 +142,6 @@ void AAreaControll_PlayerController::OnTouchReleas(const ETouchIndex::Type Finge
 				Construction->Color = MainTower->YourColorGround;
 			    Construction->ColorFunc();
 			}
-
 		}
 		BuildCreator->DestroyerFunc();
 		OutActors.Empty();
@@ -136,24 +153,26 @@ void AAreaControll_PlayerController::OnTouchReleas(const ETouchIndex::Type Finge
 
 void AAreaControll_PlayerController::OnTouchMove(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
-	if (IsValid(BuildCreator) == false && !IsPinch)
+	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
+	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
+
+	if (IsValid(BuildCreator) == false && IsPinch == false && IsTouch1 && IsTouch2 == false && CreatorIsHere == false)
 	{
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
 		PlayerCamera->TouchMove(Position);
+	}
+	if (IsPinch == false && IsTouch1 && IsTouch2 == false && CreatorIsHere && BuildCreator)
+	{
+		BuildCreatorMove(Loc);
 	}
 	MyLoc = Loc;
 }
 
 void AAreaControll_PlayerController::BuildCreatorMove(const FVector Loc)
 {
-	if (CreatorIsHere && BuildCreator)
-	{
-		TouchToWorld(Loc.X, Loc.Y, OutActors);
-		BuildCreator->MovingFunc(Position, 1.0f);
-		VPSize.X = GEngine->GameViewport->Viewport->GetSizeXY().X;
-		VPSize.Y = GEngine->GameViewport->Viewport->GetSizeXY().Y;
-		PlayerCamera->CameraMove(FVector2D(Loc.X, Loc.Y), VPSize);
-	}
+	TouchToWorld(Loc.X, Loc.Y, OutActors);
+	BuildCreator->MovingFunc(Position);
+	PlayerCamera->CameraMove(FVector2D(Loc.X, Loc.Y), GEngine->GameViewport->Viewport->GetSizeXY());
 }
 
 void AAreaControll_PlayerController::TouchToWorld(float X, float Y, TArray<AActor*> Actors)
@@ -162,23 +181,32 @@ void AAreaControll_PlayerController::TouchToWorld(float X, float Y, TArray<AActo
 	FVector End;
 	DeprojectScreenPositionToWorld(X, Y, Start, End);
 	FHitResult HitResult;
-	ECollisionChannel TraceChannel = ECC_Visibility;
 	FCollisionQueryParams TraceParams;
 	TraceParams.AddIgnoredActors(Actors);
-	End = End * 100000000000000000.0f;
-	if ([[maybe_unused]] bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, TraceChannel, TraceParams))
+	End = End * 1000000000000000000000000000000000000.0f;
+	if ([[maybe_unused]] bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, TraceParams))
 	{
 		Position.X = HitResult.Location.X;
 		Position.Y = HitResult.Location.Y;
+		//DrawDebugLine(GetWorld(), Start, HitResult.ImpactPoint, FColor::Green, false, 2.0f, 0, 1.0f);
+		//DrawDebugPoint(GetWorld(), HitResult.ImpactPoint, 10.0f, FColor::Red, false, 2.0f);
+		//UE_LOG(LogTemp, Warning, TEXT("EndLoc: X = %f, Y = %f"), Position.X, Position.Y);
 	}
 }
+
+
 
 
 void AAreaControll_PlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	BuildCreatorMove(MyLoc);
+	
+
+	if (BuildCreator && FVector2D(MyLoc.X, MyLoc.Y) == Loc1 && BuildCreator->GetActorLocation().Z > 0.0f)
+	{
+		BuildCreatorMove(FVector(MyLoc));
+	}
 }
 
 
@@ -191,7 +219,12 @@ void AAreaControll_PlayerController::BeginPlay()
 	FindReferences();
 }
 
+void AAreaControll_PlayerController::Destroyed()
+{
+	Super::Destroyed();
 
+	GetWorldTimerManager().ClearTimer(Timer0);
+}
 
 
 void AAreaControll_PlayerController::SetupInputComponent()
@@ -200,8 +233,10 @@ void AAreaControll_PlayerController::SetupInputComponent()
 
 	InputComponent->BindAxis("MouseWheel", this, &AAreaControll_PlayerController::OnMouseWheelAxis);
 	InputComponent->BindAxis("Pinch", this, &AAreaControll_PlayerController::OnPinchAxis);
+	
 	InputComponent->BindAction("Pinch", IE_Pressed, this, &AAreaControll_PlayerController::OnPinchPress);
 	InputComponent->BindAction("Pinch", IE_Released, this, &AAreaControll_PlayerController::OnPinchReleas);
+
 	InputComponent->BindTouch(IE_Pressed, this, &AAreaControll_PlayerController::OnTouchPress);
 	InputComponent->BindTouch(IE_Released, this, &AAreaControll_PlayerController::OnTouchReleas);
 	InputComponent->BindTouch(IE_Repeat, this, &AAreaControll_PlayerController::OnTouchMove);

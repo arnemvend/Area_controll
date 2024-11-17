@@ -28,7 +28,7 @@ public:
 	UFUNCTION(BlueprintCallable) void DestroyerFunc();
 
 	//"Declare function for moving this pawn"
-	UFUNCTION(BlueprintCallable) void MovingFunc(FVector2D Loc, float Scale);
+	UFUNCTION(BlueprintCallable) void MovingFunc(FVector2D Loc);
 
 
 	
@@ -39,6 +39,8 @@ protected:
 
 
 	//"Declare components"-------------------------------------------------------------------------------------->
+	UPROPERTY() int8 i; // bag fix variable
+	UPROPERTY() FTimerHandle Timer0; // bag fix variable
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Statick Mesh") UStaticMeshComponent* StaticMesh;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Statick Mesh") UStaticMeshComponent* StaticMesh0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") UCapsuleComponent* TriggerCapsule;
@@ -53,6 +55,8 @@ protected:
 
 	int InNumber;// Numder of inputs to Internal Thigger
 	int ExNumber;// Numder of inputs to External Thigger
+
+	
 
 
 	//"Declare event's functions and variables for their"------------------------------------------------------->
