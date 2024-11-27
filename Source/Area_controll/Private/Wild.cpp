@@ -48,9 +48,6 @@ AWild::AWild()
 	Gun->SetupAttachment(Mesh);
 	Gun->SetRelativeLocation(FVector(1.36f, 0.0f, -22.0f));
 	Gun->SetVisibility(false);
-	//GunClass = LoadClass<AGun>(nullptr, TEXT("/Game/Weapon/BP_Gun.BP_Gun_C"));
-	//static ConstructorHelpers::FClassFinder<AActor> ChildActorBP(TEXT("/Game/Weapon/BP_Gun.BP_Gun_C"));
-	//Gun->SetChildActorClass(ChildActorBP.Class);
 
 	Spline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
 	Spline->SetupAttachment(RootComponent);
@@ -68,7 +65,7 @@ AWild::AWild()
 	MoveTimeLine->SetLooping(false);
 	MoveTimeLine->SetComponentTickInterval(0.04f);
 
-	Type = 0;
+	Type = 0; //place in the StructWild
 	CurrentRotation = FRotator::ZeroRotator;
 
 	Box->OnComponentBeginOverlap.AddDynamic(this, &AWild::OnBoxOverlapBegin);
@@ -78,7 +75,7 @@ AWild::AWild()
 
 
 
-
+//set start parameters from StructWild
 void AWild::Start()
 {
 	FStructWild StructWild;
@@ -106,11 +103,17 @@ void AWild::Start()
 	StartTimeLine->ReverseFromEnd();
 }
 
+
+
+//spown material FX
 void AWild::CreateFunc(float Amount)
 {
 	DMeshMaterial->SetScalarParameterValue(TEXT("Amount"), Amount);
 }
 
+
+
+//setting the trajectory in spline local space
 void AWild::Continue()
 {
 	MeshLight->SetVisibility(true);
@@ -125,18 +128,22 @@ void AWild::Continue()
 	Loc.Z = 0.1f;
 	MeshShadow->SetWorldLocation(Loc);
 	MeshShadow->SetVisibility(true);
+	//set coordinates 2 point
 	Loc.X = AimCoord.X + UKismetMathLibrary::RandomFloatInRange(-150.0f, 150.0f);
 	Loc.Y = AimCoord.Y + UKismetMathLibrary::RandomFloatInRange(-150.0f, 150.0f);
 	Loc.Z = GetActorLocation().Z;
 	Spline->SetLocationAtSplinePoint(2, Loc, ESplineCoordinateSpace::World, true);
+	//set coordinates 1 point
 	Loc = Spline->GetLocationAtSplinePoint(2, ESplineCoordinateSpace::Local) * 0.5f;
 	Loc.X = Loc.X + UKismetMathLibrary::RandomFloatInRange(-100.0f, 100.0f);
 	Loc.Y = Loc.Y + UKismetMathLibrary::RandomFloatInRange(-100.0f, 100.0f);
 	Spline->SetLocationAtSplinePoint(1, Loc, ESplineCoordinateSpace::Local, true);
+	//turn to the point 1
 	SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Loc));
-	MoveTimeLine->SetPlayRate((1 / Spline->GetSplineLength()) * Speed);//???
+	//set speed and high of flight
+	MoveTimeLine->SetPlayRate((1 / Spline->GetSplineLength()) * Speed);
 	High = High + UKismetMathLibrary::RandomFloatInRange(-40.0f, 40.0f);
-
+	
 	TLCallbackMove.BindUFunction(this, FName("MoveFunc"));
 	TLCallbackHigh.BindUFunction(this, FName("HighFunc"));
 	if (CurveFloat0 && CurveFloat1)
@@ -148,23 +155,31 @@ void AWild::Continue()
 }
 
 
-
+//flight in XY axes
 void AWild::MoveFunc(float Amount)
 {
+	//mesh movement
 	CurrentCoord.X = Spline->GetLocationAtTime(Amount, ESplineCoordinateSpace::World, true).X;
 	CurrentCoord.Y = Spline->GetLocationAtTime(Amount, ESplineCoordinateSpace::World, true).Y;
 	Mesh->SetWorldLocation(CurrentCoord);
 	CurrentRotation = UKismetMathLibrary::MakeRotFromX(Spline->GetDirectionAtTime(Amount, ESplineCoordinateSpace::World, true));
 	Mesh->SetWorldRotation(FRotator(0.0f, CurrentRotation.Yaw, 0.0f));
+	//shadow movement
 	MeshShadow->SetWorldLocation(FVector(CurrentCoord.X, CurrentCoord.Y, 0.1f));
 	MeshShadow->SetWorldRotation(FRotator(0.0f, CurrentRotation.Yaw, 0.0f));
 }
 
+
+
+//flight in Z axis
 void AWild::HighFunc(float Amount)
 {
 	CurrentCoord.Z = UKismetMathLibrary::Lerp(GetActorLocation().Z, High, Amount);
 }
 
+
+
+//collision with a flyer or a shield
 void AWild::OnBoxOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -182,7 +197,6 @@ void AWild::OnBoxOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Other
 		Destroy();
 	}
 }
-
 void AWild::OnBoxOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
@@ -201,6 +215,9 @@ void AWild::OnBoxOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherAc
 	}
 }
 
+
+
+//bugfix when flying out of the shield
 void AWild::OnNoseOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
@@ -215,7 +232,7 @@ void AWild::OnNoseOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 
 
 
-// Called when the game starts or when spawned
+
 void AWild::BeginPlay()
 {
 	Super::BeginPlay();
@@ -223,12 +240,14 @@ void AWild::BeginPlay()
 }
 
 
-// Called every frame
+
+
 void AWild::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 }
+
 
 
 void AWild::Destroyed()
@@ -241,7 +260,6 @@ void AWild::Destroyed()
 	{
 		Boom->NiagaraBoomSystem = NiagaraSystem;
 		Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-		Boom->Duration = 2.0f;
 		Boom->Boom();
 	}
 	Boom = nullptr;

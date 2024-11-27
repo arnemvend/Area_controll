@@ -15,10 +15,11 @@ class AREA_CONTROLL_API AMainTower : public ATower
 
 public:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") float UpBorder;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") float DownBorder;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") float RightBorder;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") float LeftBorder;
+	UPROPERTY() float UpBorder;
+	UPROPERTY() float DownBorder;
+	UPROPERTY() float RightBorder;
+	UPROPERTY() float LeftBorder;
+	UPROPERTY() int MassEnergy;
 
 
 
@@ -34,11 +35,8 @@ public:
 
 protected:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = "Variables") int MassEnergy;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") int EnergyPoint;
-
-
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float EnergyStep;
 
 };

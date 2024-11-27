@@ -2,11 +2,13 @@
 
 
 #include "Map/GroundActor.h"
+#include "Kismet/GameplayStatics.h"
+#include "Tower/Tower.h"
+
 
 // Sets default values
 AGroundActor::AGroundActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
@@ -17,7 +19,41 @@ AGroundActor::AGroundActor()
 	GroundMesh->SetStaticMesh(GroundStaticMesh);
 	GroundMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Map/MI_Grid.MI_Grid'"));
 	GroundMesh->SetMaterial(0, GroundMaterial);
+
+
+	OnInputTouchBegin.AddDynamic(this, &AGroundActor::Touch);
 }
+
+
+
+
+
+//finds the TowerMenu and disables it
+void AGroundActor::Touch(ETouchIndex::Type FingerIndex, AActor* TouchedActor)
+{
+	TArray<AActor*> Towers;
+	ATower* Tow{};
+	UGameplayStatics::GetAllActorsWithTag(GetWorld(), TEXT("Your"), Towers);
+	if (Towers.Num() > 0)
+	{
+		for (int i = 0; i < Towers.Num(); i++)
+		{
+			if (Towers[i])
+			{
+				Tow = Cast<ATower>(Towers[i]);
+			}
+			if (Tow && Tow->IsClicked)
+			{
+				Tow->DeTouch();
+			}
+		}
+	}
+	Towers.Empty();
+	Tow = nullptr;
+}
+
+
+
 
 // Called when the game starts or when spawned
 void AGroundActor::BeginPlay()
@@ -25,6 +61,8 @@ void AGroundActor::BeginPlay()
 	Super::BeginPlay();
 	
 }
+
+
 
 // Called every frame
 void AGroundActor::Tick(float DeltaTime)

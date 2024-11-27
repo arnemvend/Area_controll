@@ -1,7 +1,6 @@
 // Copyright (c) Konstantin Pozdeev. All rights reserved.
 
 #include "Core/AreaControll_PlayerController.h"
-
 #include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCamera.h"
 #include "Creator/BuildCreator.h"
@@ -21,7 +20,7 @@ AAreaControll_PlayerController::AAreaControll_PlayerController()
 	PrimaryActorTick.bCanEverTick = true;
 
 	InitDistance = 0.0f;
-	CreatorIsHere = false;
+	CreatorIsHere = false; //additional variable for fix of move bug
 	IsPinch = false;
 	CanPress = true;
 	IsTouch1 = false;
@@ -35,6 +34,7 @@ void AAreaControll_PlayerController::FindReferences()
 {
 	GroundActor = Cast<AGroundActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGroundActor::StaticClass()));
 	PlayerCamera = Cast<APlayerCamera>(UGameplayStatics::GetActorOfClass(GetWorld(), APlayerCamera::StaticClass()));
+	//set array for parameter "ignored actors" in LineTraceByChannel
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), OutActors);
 	if (GroundActor && OutActors.Num() > 0)
 	{
@@ -51,7 +51,7 @@ void AAreaControll_PlayerController::FindReferences()
 
 
 
-
+//debug function for editor
 void AAreaControll_PlayerController::OnMouseWheelAxis(float Value)
 {
 	if (PlayerCamera && Value != 0.0f && (IsValid(BuildCreator) == false || CreatorIsHere == false))
@@ -62,6 +62,10 @@ void AAreaControll_PlayerController::OnMouseWheelAxis(float Value)
 
 
 
+
+
+//Camera zoom control------------------------------------------------------------------->
+//update distance between fingers
 void AAreaControll_PlayerController::OnPinchAxis(float Value)
 {
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
@@ -76,6 +80,8 @@ void AAreaControll_PlayerController::OnPinchAxis(float Value)
 				InitDistance = (Loc2 - Loc1).Length();
 			}
 			CurrentDistance = (Loc2 - Loc1).Length();
+			//passing the difference between the new and old values to the camera actor
+			//2.5f is test value. Can will modified.
 			PlayerCamera->CameraZoom(FMath::Clamp(((CurrentDistance - InitDistance) / InitDistance) * 2.5f, -1.0f, 1.0f));
 			InitDistance = CurrentDistance;
 		}
@@ -83,7 +89,7 @@ void AAreaControll_PlayerController::OnPinchAxis(float Value)
 }
 
 
-
+//declare about start pinch action
 void AAreaControll_PlayerController::OnPinchPress()
 {
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
@@ -96,16 +102,18 @@ void AAreaControll_PlayerController::OnPinchPress()
 		{
 			InitDistance = 0.0f;
 			CurrentDistance = 0.0f;
-			CanPress = false;
+			CanPress = false;//suppress touch action
 		}
 	}
 }
 
 
+//declare about end pinch action
 void AAreaControll_PlayerController::OnPinchReleas()
 {
 	InitDistance = 0.0f;
 	CurrentDistance = 0.0f;
+	//delay before permission touch action
 	GetWorldTimerManager().SetTimer(Timer0, [this]()
 	{
 		CanPress = true;
@@ -114,11 +122,15 @@ void AAreaControll_PlayerController::OnPinchReleas()
 }
 
 
+
+
+//Camera move control------------------------------------------------------------------->
+//declare about start touch action
 void AAreaControll_PlayerController::OnTouchPress(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
 	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
-
+	//player can't move camera if BuildCreator is valid
 	if (IsValid(BuildCreator) == false  && IsPinch == false  && IsTouch1  && IsTouch2 == false && CreatorIsHere == false)
 	{
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
@@ -127,14 +139,15 @@ void AAreaControll_PlayerController::OnTouchPress(const ETouchIndex::Type Finger
 	}
 }
 
-
+//declare about end touch action, spown Construction object, destroy BuildCreator object
 void AAreaControll_PlayerController::OnTouchReleas(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
 	if (BuildCreator && CreatorIsHere)
 	{
+		//check is it possible to build
 		if (BuildCreator->IsReady)
 		{
-			const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
+			const FRotator SpawnRotation = FRotator::ZeroRotator;
 		    FActorSpawnParameters SpawnParams;
 		    Construction = GetWorld()->SpawnActor<AConstruction>(Spowned, BuildCreator->GetActorLocation(), SpawnRotation, SpawnParams);
 			if (Construction)
@@ -143,14 +156,14 @@ void AAreaControll_PlayerController::OnTouchReleas(const ETouchIndex::Type Finge
 			    Construction->ColorFunc();
 			}
 		}
-		BuildCreator->DestroyerFunc();
+		BuildCreator->Destroy();
 		OutActors.Empty();
 		CreatorIsHere = false;
 	}
 	MyLoc = Loc;
 }
 
-
+//update coordinate of finger
 void AAreaControll_PlayerController::OnTouchMove(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
@@ -158,23 +171,30 @@ void AAreaControll_PlayerController::OnTouchMove(const ETouchIndex::Type FingerI
 
 	if (IsValid(BuildCreator) == false && IsPinch == false && IsTouch1 && IsTouch2 == false && CreatorIsHere == false)
 	{
+		//sending the coordinates of the touch to the camera
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
 		PlayerCamera->TouchMove(Position);
 	}
 	if (IsPinch == false && IsTouch1 && IsTouch2 == false && CreatorIsHere && BuildCreator)
 	{
+		//supdate BuildCreator coordinates
 		BuildCreatorMove(Loc);
 	}
 	MyLoc = Loc;
 }
 
+
+//ending the coordinates of the touch to the BuildCreator
 void AAreaControll_PlayerController::BuildCreatorMove(const FVector Loc)
 {
 	TouchToWorld(Loc.X, Loc.Y, OutActors);
 	BuildCreator->MovingFunc(Position);
+	//if the BuildCreator is at the edge of the screen, the camera moves
 	PlayerCamera->CameraMove(FVector2D(Loc.X, Loc.Y), GEngine->GameViewport->Viewport->GetSizeXY());
 }
 
+
+//it converts screen coordinates to world coordinates
 void AAreaControll_PlayerController::TouchToWorld(float X, float Y, TArray<AActor*> Actors)
 {
 	FVector Start;
@@ -209,9 +229,6 @@ void AAreaControll_PlayerController::Tick(float DeltaTime)
 	}
 }
 
-
-
-
 void AAreaControll_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -240,7 +257,6 @@ void AAreaControll_PlayerController::SetupInputComponent()
 	InputComponent->BindTouch(IE_Pressed, this, &AAreaControll_PlayerController::OnTouchPress);
 	InputComponent->BindTouch(IE_Released, this, &AAreaControll_PlayerController::OnTouchReleas);
 	InputComponent->BindTouch(IE_Repeat, this, &AAreaControll_PlayerController::OnTouchMove);
-	
 }
 
 

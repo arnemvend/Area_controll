@@ -33,8 +33,8 @@ public:
 	AWild();
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") FVector AimCoord;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") int Type;
+	UPROPERTY() FVector AimCoord;
+	UPROPERTY() int Type;
 
 	UFUNCTION(BlueprintCallable) void Start();
 
@@ -64,6 +64,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) UTimelineComponent* StartTimeLine;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) UTimelineComponent* MoveTimeLine;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curves") UCurveFloat* CurveFloat0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curves") UCurveFloat* CurveFloat1;
 
@@ -73,8 +74,6 @@ protected:
 	UPROPERTY() FOnTimelineEvent TLFinish;
 
 	UPROPERTY() UNiagaraSystem* NiagaraSystem;
-
-	//UPROPERTY() TSubclassOf<AActor> GunClass;
 
 	
 	UPROPERTY() FVector CurrentCoord;

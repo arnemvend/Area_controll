@@ -7,7 +7,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Structure/StructWild.h"
-//#include "Weapon/Projectile_0.h"
 
 
 // Sets default values
@@ -32,7 +31,7 @@ AGun::AGun()
 	RotateTimeLine->SetLooping(false);
 	RotateTimeLine->SetComponentTickInterval(0.04f);
 
-	Type = 0;
+	Type = 0; //place in the StructWild
 	CanStartTimer = false;
 
 	GunRadius->OnComponentBeginOverlap.AddDynamic(this, &AGun::OnOverlapBegin);

@@ -10,6 +10,7 @@ class UStaticMeshComponent;
 class UStaticMesh;
 class UMaterialInterface;
 
+
 UCLASS()
 class AREA_CONTROLL_API AGroundActor : public AActor
 {
@@ -32,5 +33,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Statick Mesh") UStaticMeshComponent* GroundMesh;
 	UPROPERTY() UStaticMesh* GroundStaticMesh;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Statick Mesh") UMaterialInterface* GroundMaterial;
+
+
+	UFUNCTION() void Touch(ETouchIndex::Type FingerIndex, AActor* TouchedActor);
 
 };

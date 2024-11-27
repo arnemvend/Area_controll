@@ -11,6 +11,7 @@ class UCameraComponent;
 class UFloatingPawnMovement;
 class UInputComponent;
 
+
 UCLASS()
 class AREA_CONTROLL_API APlayerCamera : public APawn
 {
@@ -20,38 +21,38 @@ public:
 	
 	APlayerCamera();
 
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components") UCameraComponent* GamerCamera;
-
-	virtual void Tick(float DeltaTime) override;
-
 	
 	//"Declare function for moving this Pawn"------------------------------------------------------------------->
-	UFUNCTION(BlueprintCallable) void StartTouchMove(FVector2D Loc);
-	UFUNCTION(BlueprintCallable) void TouchMove(FVector2D Loc);
-	UFUNCTION(BlueprintCallable) void CameraMove(FVector2D Loc, FIntPoint ScreenSize);
-	UFUNCTION(BlueprintCallable) void CameraZoom(float A);
+	UFUNCTION() void StartTouchMove(FVector2D Loc);
+	UFUNCTION() void TouchMove(FVector2D Loc);
+	UFUNCTION() void CameraMove(FVector2D Loc, FIntPoint ScreenSize);
+	UFUNCTION() void CameraZoom(float A);
 
 
 protected:
 
 	virtual void BeginPlay() override;
 
+	virtual void Tick(float DeltaTime) override;
+
 
 
 	//"Declare components"-------------------------------------------------------------------------------------->
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components") USpringArmComponent* GamerSpringArm;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") USpringArmComponent* GamerSpringArm;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components") UFloatingPawnMovement* GamerPawnMovement;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") UFloatingPawnMovement* GamerPawnMovement;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") UCameraComponent* GamerCamera;
 
 
 
 	//"Declare variables for moving this Pawn"------------------------------------------------------------------->
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float SpeedCameraMove;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float SpeedCameraZoom;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float LenghtMax;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float LenghtMin;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float SizeWorld;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float SpeedCameraMove;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float SpeedCameraZoom;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float LenghtMax;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float LenghtMin;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float SizeWorld; //in Level BP
 	UPROPERTY() FVector2D StartTouchWorldLoc;
 
 

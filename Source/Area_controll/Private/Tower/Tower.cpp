@@ -6,8 +6,11 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
-#include "Components/WidgetComponent.h"
+#include "TimerManager.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "HUD/TowerWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Tower/MainTower.h"
@@ -90,16 +93,6 @@ ATower::ATower()
 
 
 
-	//"Set parameters of Widget"-------------------------------------------------------------------------------->
-	TowerWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
-	TowerWidget->SetupAttachment(RootComponent);
-	TowerWidget->SetWidgetSpace(EWidgetSpace::Screen);
-	TowerWidget->SetDrawSize(FVector2D(820.0f, 320.0f));
-
-
-
-
-
 	//"Set parameters of Timeline"------------------------------------------------------------------------------>
 	//timeline for the main shield
 	ShieldTimeLine = CreateDefaultSubobject<UTimelineComponent>(TEXT("ShieldTimeLine"));
@@ -119,6 +112,7 @@ ATower::ATower()
 	//"Set other variables"------------------------------------------------------------------------------------->
 	ChildTowers.Empty(); //The towers are further down the network
 	TemporaryTower = nullptr; //The tower is higher on the network
+	TW = nullptr;
 	Wave = 0;
 	MaxWave = 0;
 	NotNet = 0;
@@ -128,6 +122,7 @@ ATower::ATower()
 	IsClicked = false;
 	IsRepeater = false;
 	CanDie = true;
+	
 
 
 	OnTakeAnyDamage.AddDynamic(this, &ATower::OnTakeDamage);
@@ -186,49 +181,60 @@ void ATower::DeTouch()
 	float Op;
 	DDiskMaterial->GetScalarParameterValue(TEXT("Opacity_Param"), Op);
 	DDiskMaterial->SetScalarParameterValue(TEXT("Opacity_Param"), Op / 2);
-
-	TowerWidget->SetVisibility(false);
+	if (TW && TW->IsInViewport())
+	{
+		TW->RemoveFromParent();
+		TW->Reset();
+	}
 	IsClicked = false;
 }
 
 //The function of marking the selection
 void ATower::Touch(ETouchIndex::Type FingerIndex, AActor* TouchedActor)
 {
-	if (IsClicked)
+	if (ActorHasTag(TEXT("Your")))
 	{
-		ATower::DeTouch();
-	}
-	else
-	{
-		DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 0.0f);
-		float Op;
-		DDiskMaterial->GetScalarParameterValue(TEXT("Opacity_Param"), Op);
-		DDiskMaterial->SetScalarParameterValue(TEXT("Opacity_Param"), Op * 2);
-		IsClicked = true;
-		//if the tower has its own, the menu is turned on
-		if (ActorHasTag(FName(TEXT("Your"))))
+		if (IsClicked)
 		{
-			TowerWidget->SetVisibility(true);
+			ATower::DeTouch();
 		}
-		//search for a highlighted tower and deselect it
-		TArray<AActor*> UntouchActors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATower::StaticClass(), UntouchActors);
-		ATower* UntouchTower{};
-		if (UntouchActors.Num() > 0)
+		else
 		{
-			for (int i = 0; i < UntouchActors.Num(); i++)
+			//search for a highlighted tower and deselect it
+			TArray<AActor*> UntouchActors;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATower::StaticClass(), UntouchActors);
+			ATower* UntouchTower{};
+			if (UntouchActors.Num() > 0)
 			{
-				if (UntouchActors[i])
+				for (int i = 0; i < UntouchActors.Num(); i++)
 				{
-					UntouchTower = Cast<ATower>(UntouchActors[i]);
+					if (UntouchActors[i])
+					{
+						UntouchTower = Cast<ATower>(UntouchActors[i]);
+					}
+					if (UntouchTower && UntouchTower != this && UntouchTower->IsClicked == true)
+					{
+						UntouchTower->DeTouch();
+					}
 				}
-				if (UntouchTower && UntouchTower != this && UntouchTower->IsClicked == true)
+			}
+			UntouchTower = nullptr;
+			DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 0.0f);
+			float Op;
+			DDiskMaterial->GetScalarParameterValue(TEXT("Opacity_Param"), Op);
+			DDiskMaterial->SetScalarParameterValue(TEXT("Opacity_Param"), Op * 2);
+			IsClicked = true;
+			//if the tower has its own, the menu is turned on
+			if (ActorHasTag(FName(TEXT("Your"))))
+			{
+				if (TW && TW->IsInViewport() == false)
 				{
-					UntouchTower->DeTouch();
+					TW->MyTower = this;
+					TW->StartEvent();
+					TW->AddToViewport();
 				}
 			}
 		}
-		UntouchTower = nullptr;
 	}
 }
 
@@ -420,6 +426,10 @@ void ATower::SetParam()
 	{
 		int MaxIndex = 0;
 		Name = TemporaryTower->Name;
+		if (TemporaryTower->TW)
+		{
+			TW = TemporaryTower->TW;
+		}
 		Tags.AddUnique(Name);
 		Wave = TemporaryTower->Wave + 1;
 		AdressTower += TemporaryTower->AdressTower;
@@ -620,15 +630,11 @@ void ATower::PartAmountFunc(float Value)
 void ATower::PShieldOn()
 {
 	IsProcessRun = false;
-	//ScaleFunc(PartShieldMesh);
-	//PartShieldMesh->SetVisibility(true);
 }
 
 void ATower::ShieldOn()
 {
 	IsProcessRun = false;
-	//ScaleFunc(SphereShieldMesh);
-	//SphereShieldMesh->SetVisibility(true);
 }
 
 void ATower::PartShieldProcessOff()
@@ -686,12 +692,10 @@ void ATower::TowerDestroy()
 			if (Name == FName(TEXT("Your")))
 			{
 				Main->MainFinder(this);
-				//Main->CheckEnergy();
 			}
 			if (Name == FName(TEXT("YourEnemy")))
 			{
 				MainEnemy->MainFinder(this);
-				//MainEnemy->CheckEnergy();
 			}
 		}
 	}
@@ -718,6 +722,7 @@ void ATower::NetOff()
 	DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 1.0f);
 	IsProcessRun = false;
 	DeTouch();
+	TW = nullptr;
 	AdressTower.Empty();
 	if (SphereShieldMesh->IsVisible() == true)
 	{
@@ -756,7 +761,6 @@ void ATower::BeginPlay()
 {
 	Super::BeginPlay();
 
-
 	//max distance between Towers in net
 	Influence = TriggerCapsuleInternal->GetScaledCapsuleRadius() + TriggerCapsuleExternal->GetScaledCapsuleRadius() + 10.0f;
 
@@ -791,7 +795,7 @@ void ATower::Destroyed()
 	GetWorldTimerManager().ClearTimer(Timer2);
 	GetWorldTimerManager().ClearTimer(Timer3);
 
-	const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
+	const FRotator SpawnRotation = FRotator::ZeroRotator;
 	ABoom* BoomActor = GetWorld()->SpawnActor<ABoom>(SpownBoom, GetActorLocation(), SpawnRotation);
 	if (BoomActor)
 	{

@@ -40,8 +40,8 @@ AProjectile_0::AProjectile_0()
 void AProjectile_0::BeginPlay()
 {
 	Super::BeginPlay();
-
 	FVector FVec = Sphere->GetForwardVector() * InitSpeed;
+	//timer for move
 	GetWorldTimerManager().SetTimer(Timer, [this, FVec]()
 	{
 		Sphere->AddWorldOffset(FVec, true);
@@ -50,23 +50,24 @@ void AProjectile_0::BeginPlay()
 }
 
 
-
+//collision logic for different objects
 void AProjectile_0::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+                                   UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if ((OtherComp->ComponentHasTag(TEXT("Internal")) || OtherComp->ComponentHasTag(TEXT("InternalEnemy"))) 
 		&& IsValid(OtherActor))
 	{
+		//logic of damage
 		AController* EventInstigator = GetInstigatorController();
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, EventInstigator, this, UDamageType::StaticClass());
+		//spown Boom and destroy
 		EventInstigator = nullptr;
-		const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
+		const FRotator SpawnRotation = FRotator::ZeroRotator;
 		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, SweepResult.Location, SpawnRotation);
 		if (Boom)
 		{
 			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom0_obj.NI_Boom0_obj'"));
 	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-	        Boom->Duration = 2.0f;
 		    Boom->Boom();
 		}
 		Boom = nullptr;
@@ -74,13 +75,12 @@ void AProjectile_0::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
-		const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
+		const FRotator SpawnRotation = FRotator::ZeroRotator;
 		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, SweepResult.Location, SpawnRotation);
 		if (Boom)
 		{
 			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom0_gr.NI_Boom0_gr'"));
 	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-	        Boom->Duration = 2.0f;
 		    Boom->Boom();
 		}
 		Boom = nullptr;
@@ -94,7 +94,6 @@ void AProjectile_0::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 		{
 			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom0_sh.NI_Boom0_sh'"));
 	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-	        Boom->Duration = 2.0f;
 		    Boom->Boom();
 		}
 		Boom = nullptr;

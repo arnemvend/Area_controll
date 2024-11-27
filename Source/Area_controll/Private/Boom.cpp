@@ -8,16 +8,17 @@
 // Sets default values
 ABoom::ABoom()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-
 
 	NiagaraBoom = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent"));
 	NiagaraBoom->SetupAttachment(RootComponent);
 
+	Duration = 2.0f;
 }
+
+
 
 // Called when the game starts or when spawned
 void ABoom::BeginPlay()
@@ -26,25 +27,29 @@ void ABoom::BeginPlay()
 	
 }
 
+
+//LifeTime
 void ABoom::Boom()
 {
-	GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+	GetWorldTimerManager().SetTimer(Timer0, [this]()
 	{
 		Destroy();
 	}, Duration, false);
 }
 
-// Called every frame
+
+
 void ABoom::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 }
 
+
 void ABoom::Destroyed()
 {
 	Super::Destroyed();
 
-	GetWorldTimerManager().ClearTimer(TimerHandle);
+	GetWorldTimerManager().ClearTimer(Timer0);
 }
 

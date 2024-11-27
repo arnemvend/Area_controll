@@ -24,9 +24,10 @@ public:
 
 	AWildFabric();
 
-	// Called every frame
+	
 	virtual void Tick(float DeltaTime) override;
 
+	//in Level_BP
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") int Type;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") FVector AimCoord;
 
@@ -48,7 +49,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<AWild> Spowned;
 
-
+	////in Level_BP
 	UFUNCTION(BlueprintCallable) void RotFunc();
 	UFUNCTION(BlueprintCallable) void CreateFunc();
 };

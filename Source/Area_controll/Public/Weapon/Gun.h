@@ -16,7 +16,6 @@ class UCapsuleComponent;
 class UMaterialInterface;
 class UTimelineComponent;
 class UCurveFloat;
-class AProjectile_0;
 
 
 
@@ -32,9 +31,9 @@ public:
 	
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") int Type;
+	UPROPERTY() int Type;
 
-	UFUNCTION(BlueprintCallable) void Start();
+	UFUNCTION() void Start();
 
 protected:
 	// Called when the game starts or when spawned
@@ -53,6 +52,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) UTimelineComponent* RotateTimeLine;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curves") UCurveFloat* CurveFloat;
+
 	UPROPERTY() FOnTimelineFloat TLCallback;
 	UPROPERTY() FOnTimelineEvent TLFinish;
 
@@ -61,7 +61,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Accurary;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Gun_Speed;
 	UPROPERTY() bool CanStartTimer;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") FVector AimLoc;
+	UPROPERTY() FVector AimLoc;
 	UPROPERTY() TArray<AActor*> Aims;
 	UPROPERTY() AActor* AimActor;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<AActor> SpownProjectile;

@@ -37,7 +37,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") USphereComponent* Sphere3;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") USphereComponent* Sphere4;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") TArray<USphereComponent*> SphereArr;
+	UPROPERTY() TArray<USphereComponent*> SphereArr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* Niagara0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* Niagara1;
@@ -47,7 +47,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* NiagaraClasterBomb;
 	UPROPERTY() UNiagaraSystem* NiagaraSystem;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") TArray<UNiagaraComponent*> NiagaraArr;
+	UPROPERTY() TArray<UNiagaraComponent*> NiagaraArr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ProjectileMovement")
 	UProjectileMovementComponent* ProjectileMovement;
@@ -55,29 +55,30 @@ protected:
 	UPROPERTY() FTimerHandle Timer0;
 	UPROPERTY() FTimerHandle Timer1;
 
-	UPROPERTY() float Damage;
-	UPROPERTY() float Splash;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float Damage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float Splash;
 	UPROPERTY() bool CanBoom;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ABoom> Spowned;
 
 	UFUNCTION() void PostReact(USphereComponent* Sphere, UNiagaraComponent* Niagara, FVector Loc);
+
 	UFUNCTION()
 	void React(AActor* OtherActor, UPrimitiveComponent* OtherComp, USphereComponent* Sphere, UNiagaraComponent* Niagara, FVector Loc);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnOverlapBegin0(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnOverlapBegin1(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnOverlapBegin2(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnOverlapBegin3(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnOverlapBegin4(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 };

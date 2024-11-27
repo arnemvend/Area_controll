@@ -19,28 +19,26 @@ class AREA_CONTROLL_API ABoom : public AActor
 
 
 public:	
-	// Sets default values for this actor's properties
+
 	ABoom();
+
 	virtual void Tick(float DeltaTime) override;
 
-	
-
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* NiagaraBoom;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Niagara") UNiagaraComponent* NiagaraBoom;
 	UPROPERTY() UNiagaraSystem* NiagaraBoomSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Duration;
 
-	UFUNCTION(BlueprintCallable) void Boom();
+	UFUNCTION() void Boom();
 
 protected:
-	// Called when the game starts or when spawned
+
 	virtual void BeginPlay() override;
 
 	virtual void Destroyed() override;
 
 
-	UPROPERTY() FTimerHandle TimerHandle;
+	UPROPERTY() FTimerHandle Timer0;
 
 	
 };

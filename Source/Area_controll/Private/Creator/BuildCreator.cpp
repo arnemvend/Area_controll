@@ -9,10 +9,7 @@ ABuildCreator::ABuildCreator()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	ABuildCreator::SetActorLocation(FVector(0.0f, 0.0f, -2000.0f));
-
-	InNumber = 0;
-	ExNumber = 0;
+	
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
@@ -45,9 +42,14 @@ ABuildCreator::ABuildCreator()
 	TriggerCapsule->OnComponentBeginOverlap.AddDynamic(this, &ABuildCreator::OnOverlapBegin);
 	TriggerCapsule->OnComponentEndOverlap.AddDynamic(this, &ABuildCreator::OnOverlapEnd);
 
+
+
+	SetActorLocation(FVector(0.0f, 0.0f, -2000.0f));
+
+	InNumber = 0;//counter of entrances to the construction area
+	ExNumber = 0;//counter of entrances to the building area
 	IsReady = false;//can or can't building new tower
 	NewColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.0f);
-	i = 0;
 }
 
 
@@ -125,14 +127,6 @@ void ABuildCreator::MovingFunc(FVector2D Loc)
 
 
 
-//"Destroy Actor process"------------------------------------------------------------------------------------->
-void ABuildCreator::DestroyerFunc()
-{
-	ABuildCreator::SetActorLocation(FVector(0.0f, 0.0f, -2000.0f));
-	GetWorldTimerManager().ClearTimer(Timer0);
-	Destroy();
-}
-
 
 
 //"BeginPlay. It works when game starts"---------------------------------------------------------------------->
@@ -144,16 +138,23 @@ void ABuildCreator::BeginPlay()
 	DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
 	DynamicMaterial0 = StaticMesh0->CreateDynamicMaterialInstance(0, CreatorMaterial0);
 	DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor); //set color
-
+	//checking the movement
 	GetWorldTimerManager().SetTimer(Timer0, [this]()
 		{
 			if (GetActorLocation().Z < 0.0f)
 			{
-				DestroyerFunc();
+				Destroy();
 			}
 		}, 0.1f, false);
 }
 
+void ABuildCreator::Destroyed()
+{
+	Super::Destroyed();
+
+	ABuildCreator::SetActorLocation(FVector(0.0f, 0.0f, -2000.0f));
+	GetWorldTimerManager().ClearTimer(Timer0);
+}
 
 
 //"Tick. It works every tick, if EverTick = true"------------------------------------------------------------->

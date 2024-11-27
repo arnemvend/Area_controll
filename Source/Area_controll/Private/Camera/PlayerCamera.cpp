@@ -40,19 +40,20 @@ APlayerCamera::APlayerCamera()
 
 
 //"Touch camera move control"--------------------------------------------------------------------------------------->
+//Set start value
 void APlayerCamera::StartTouchMove(FVector2D Loc)
 {
 	StartTouchWorldLoc = Loc;
 }
 
+
 void APlayerCamera::TouchMove(FVector2D Loc)
 {
 	FVector DeltaLoc;
-	FVector ActorLocation = GetActorLocation();
 
 	//check direction and boundaries of the world on the x-axis
-	if(((ActorLocation.X <= SizeWorld) || ((StartTouchWorldLoc.X - Loc.X) < 0))
-		&& ((ActorLocation.X >= -SizeWorld) || ((StartTouchWorldLoc.X - Loc.X) > 0)))
+	if(((GetActorLocation().X <= SizeWorld) || ((StartTouchWorldLoc.X - Loc.X) < 0))
+		&& ((GetActorLocation().X >= -SizeWorld) || ((StartTouchWorldLoc.X - Loc.X) > 0)))
 	{
 		DeltaLoc.X = (StartTouchWorldLoc.X - Loc.X) * SpeedCameraMove;
 	}
@@ -62,8 +63,8 @@ void APlayerCamera::TouchMove(FVector2D Loc)
 	}
 
 	//check direction and boundaries of the world on the y-axis
-	if (((ActorLocation.Y <= SizeWorld) || ((StartTouchWorldLoc.Y - Loc.Y) < 0))
-		&& ((ActorLocation.Y >= -SizeWorld) || ((StartTouchWorldLoc.Y - Loc.Y) > 0)))
+	if (((GetActorLocation().Y <= SizeWorld) || ((StartTouchWorldLoc.Y - Loc.Y) < 0))
+		&& ((GetActorLocation().Y >= -SizeWorld) || ((StartTouchWorldLoc.Y - Loc.Y) > 0)))
 	{
 		DeltaLoc.Y = (StartTouchWorldLoc.Y - Loc.Y) * SpeedCameraMove;
 	}
@@ -83,21 +84,19 @@ void APlayerCamera::TouchMove(FVector2D Loc)
 //"BuildCreator camera move control"------------------------------------------------------------------------------>
 void APlayerCamera::CameraMove(FVector2D Loc, FIntPoint ScreenSize)
 {
-	FVector ActorLocation = GetActorLocation();
-
-	if ((Loc.X < (ScreenSize.X * 0.08)) && (ActorLocation.X <= SizeWorld))
+	if ((Loc.X < (ScreenSize.X * 0.08)) && (GetActorLocation().X <= SizeWorld))
 	{
 		AddMovementInput(GetActorRightVector(), -1);
 	}
-	if ((Loc.Y < (ScreenSize.Y * 0.08)) && (ActorLocation.Y <= SizeWorld))
+	if ((Loc.Y < (ScreenSize.Y * 0.08)) && (GetActorLocation().Y <= SizeWorld))
 	{
 		AddMovementInput(GetActorForwardVector());
 	}
-	if ((Loc.X > (ScreenSize.X * 0.92)) && (ActorLocation.X >= -SizeWorld))
+	if ((Loc.X > (ScreenSize.X * 0.92)) && (GetActorLocation().X >= -SizeWorld))
 	{
 		AddMovementInput(GetActorRightVector());
 	}
-	if ((Loc.Y > (ScreenSize.Y * 0.92)) && (ActorLocation.Y >= -SizeWorld))
+	if ((Loc.Y > (ScreenSize.Y * 0.92)) && (GetActorLocation().Y >= -SizeWorld))
 	{
 		AddMovementInput(GetActorForwardVector(), -1);
 	}

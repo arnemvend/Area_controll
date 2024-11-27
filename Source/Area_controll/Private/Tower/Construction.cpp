@@ -39,10 +39,10 @@ AConstruction::AConstruction()
 	CapsuleInternal->SetCapsuleHalfHeight(70.0f);
 
 
-	Health = 10.0f;
-	Max = 30.0f;
-	Health_P = 10.0f;
-
+	Health = 10.0f; //initial health
+	Health_P = Health; //initial counter
+	Max = 30.0f; // max health
+	Step = 2.0f; // add value health and counter per time
 
 	OnTakeAnyDamage.AddDynamic(this, &AConstruction::OnTakeDamage);
 }
@@ -78,18 +78,17 @@ void AConstruction::ColorFunc()
 //Logic of building
 void AConstruction::AddHealthFunc()
 {
-	Health = Health + 2.0f; //real health
-	Health_P = Health_P + 2.0f; //secondary health
+	Health = Health + Step; //real health
+	Health_P = Health_P + Step; //value in the counter
 	if (Health_P >= Max)
 	{
 		const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
 		Tower = GetWorld()->SpawnActor<ATower>(Spowned, GetActorLocation(), SpawnRotation);
 		if (Tower)
 		{
+			//set health of the spowned tower
 			Tower->Health = Tower->MaxHealth * (Health / Max);
 			Tower->SetDamageFunc();
-
-			
 			Destroy();
 		}
 	}
@@ -110,7 +109,6 @@ void AConstruction::BeginPlay()
 	{
 		AddHealthFunc();
 	}, 1.0f, true);
-
 }
 
 

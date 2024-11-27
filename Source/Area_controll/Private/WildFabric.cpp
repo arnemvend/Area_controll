@@ -45,15 +45,19 @@ AWildFabric::AWildFabric()
 }
 
 
+//set rotate to AimCoord
 void AWildFabric::RotFunc()
 {
 	const FRotator Rot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), AimCoord);
 	SetActorRotation(FRotator(0.0f, Rot.Yaw, 0.0f));
 }
 
+
+
+//spown Wild and set it's parameters
 void AWildFabric::CreateFunc()
 {
-	Niagara->Activate();
+	Niagara->Activate();//spown FX
 	const FVector Loc = GetActorLocation() + FVector(0.0f, 0.0f, 72.0f);
 	AWild* Wild =  GetWorld()->SpawnActor<AWild>(Spowned, Loc, GetActorRotation());
 	Wild->AimCoord = AimCoord;
@@ -63,14 +67,14 @@ void AWildFabric::CreateFunc()
 }
 
 
-// Called when the game starts or when spawned
+
 void AWildFabric::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
-// Called every frame
+
 void AWildFabric::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);

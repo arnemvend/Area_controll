@@ -21,11 +21,11 @@ class AREA_CONTROLL_API AConstruction : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
-	// Sets default values for this actor's properties
+public:
+
 	AConstruction();
 
-	// Called every frame
+
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") FColor Color;
@@ -37,7 +37,7 @@ public:
 	
 
 protected:
-	// Called when the game starts or when spawned
+	
 	virtual void BeginPlay() override;
 
 	virtual void Destroyed() override;
@@ -55,11 +55,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInstanceDynamic* DTowMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInstanceDynamic* DRotMaterial;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References") ATower* Tower;
+	UPROPERTY() ATower* Tower;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float Health;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float Max;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float Health_P;
+	UPROPERTY() float Health_P;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float Step;
 	
 
 

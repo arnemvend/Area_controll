@@ -104,6 +104,11 @@ AProjectile_1::AProjectile_1()
 }
 
 
+
+
+
+
+//This function is triggered when a sphere collides with an object
 void AProjectile_1::PostReact(USphereComponent* Sphere, UNiagaraComponent* Niagara, FVector Loc)
 {
 	SphereArr.Remove(Sphere);
@@ -113,11 +118,20 @@ void AProjectile_1::PostReact(USphereComponent* Sphere, UNiagaraComponent* Niaga
 		Niagara->SetVariablePosition(FName(TEXT("EndVector")), Loc);
 		Niagara->Activate();
 	}
+	//if CanBoom = false bomb is stops
 	else
 	{
 		ProjectileMovement->StopMovementImmediately();
 	}
 }
+
+
+
+
+
+
+
+
 
 void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, USphereComponent* Sphere,
 	UNiagaraComponent* Niagara, FVector Loc)
@@ -125,8 +139,10 @@ void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, US
 	if ((OtherComp->ComponentHasTag(TEXT("Internal")) || OtherComp->ComponentHasTag(TEXT("InternalEnemy"))) 
 		&& IsValid(OtherActor))
 	{
+		//logic of damage
 		AController* EventInstigator = GetInstigatorController();
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, EventInstigator, this, UDamageType::StaticClass());
+		//spown Boom and destroy component
 		EventInstigator = nullptr;
 		const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
 		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, Loc, SpawnRotation);
@@ -134,7 +150,6 @@ void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, US
 		{
 			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom1_obj.NI_Boom1_obj'"));
 	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-	        Boom->Duration = 2.0f;
 		    Boom->Boom();
 		}
 		Boom = nullptr;
@@ -148,7 +163,6 @@ void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, US
 		{
 			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom1_gr.NI_Boom1_gr'"));
 	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-	        Boom->Duration = 2.0f;
 		    Boom->Boom();
 		}
 		Boom = nullptr;
@@ -171,7 +185,6 @@ void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, US
 		{
 			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom0_sh.NI_Boom0_sh'"));
 	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-	        Boom->Duration = 2.0f;
 		    Boom->Boom();
 		}
 		Boom = nullptr;
@@ -179,6 +192,14 @@ void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, US
 	}
 }
 
+
+
+
+
+
+
+
+//collision logic for every spheres
 void AProjectile_1::OnOverlapBegin0(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -210,19 +231,28 @@ void AProjectile_1::OnOverlapBegin4(UPrimitiveComponent* OverlappedComp, AActor*
 }
 
 
+
+
+
+
+
+
+
+
 // Called when the game starts or when spawned
 void AProjectile_1::BeginPlay()
 {
 	Super::BeginPlay();
 
 	FRotator Rot = FRotator::ZeroRotator;
+	//set rotation for every spheres
 	for (int i = 0; i < SphereArr.Num(); i++)
 	{
 		Rot.Pitch = UKismetMathLibrary::RandomFloatInRange(-0.65f * Splash, 0.65f * Splash);
 		Rot.Yaw = UKismetMathLibrary::RandomFloatInRange(-1.0f * Splash, Splash);
 		SphereArr[i]->SetRelativeRotation(Rot);
 	}
-
+	//If the bomb has not collided before the end of the delay
 	GetWorldTimerManager().SetTimer(Timer0, [this]()
 	{
 		ProjectileMovement->StopMovementImmediately();
@@ -232,6 +262,7 @@ void AProjectile_1::BeginPlay()
 		{
 			NiagaraArr[i]->SetVariablePosition(FName(TEXT("Start")), GetActorLocation());
 		}
+		//timer for the movement of spheres
 		GetWorldTimerManager().SetTimer(Timer1, [this]()
 	    {
 		    for (int i = 0; i < SphereArr.Num(); i++)
@@ -243,6 +274,7 @@ void AProjectile_1::BeginPlay()
 						SphereArr[i]->AddWorldOffset(SphereArr[i]->GetForwardVector() * 150.0f, true);
 					}
 				}
+				//if all spheres are destroyed, the actor is destroyed
 				else
 				{
 					Destroy();

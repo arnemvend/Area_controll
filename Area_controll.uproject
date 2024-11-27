@@ -9,7 +9,8 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
-				"Engine"
+				"Engine",
+				"UMG"
 			]
 		}
 	],
@@ -39,6 +40,10 @@
 		},
 		{
 			"Name": "AppleImageUtils",
+			"Enabled": false
+		},
+		{
+			"Name": "UdpMessaging",
 			"Enabled": false
 		}
 	],

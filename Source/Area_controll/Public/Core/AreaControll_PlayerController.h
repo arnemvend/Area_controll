@@ -21,17 +21,15 @@ class AREA_CONTROLL_API AAreaControll_PlayerController : public APlayerControlle
 {
 	GENERATED_BODY()
 
-	public:	
+public:	
 	
 	AAreaControll_PlayerController();
 
+	UPROPERTY() bool CreatorIsHere;
 
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void SetupInputComponent() override;
-
-
-
+	UPROPERTY() ABuildCreator* BuildCreator;
+	UPROPERTY() AGroundActor* GroundActor;
+	UPROPERTY() TArray<AActor*> OutActors;
 
 
 protected:
@@ -39,13 +37,16 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void Destroyed() override;
+
+	virtual void Tick(float DeltaTime) override;
+
+	virtual void SetupInputComponent() override;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "References") ABuildCreator* BuildCreator;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "References") AGroundActor* GroundActor;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "References") APlayerCamera* PlayerCamera;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "References") ATower* MainTower;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "References") AConstruction* Construction;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "References") TArray<AActor*> OutActors;
+	
+	UPROPERTY() APlayerCamera* PlayerCamera;
+	UPROPERTY() ATower* MainTower;
+	UPROPERTY() AConstruction* Construction;
+	
 
 	UPROPERTY() float InitDistance;
 	UPROPERTY() float CurrentDistance;
@@ -54,7 +55,7 @@ protected:
 	UPROPERTY() FVector2D Loc2;
 	
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") bool CreatorIsHere;
+	
 	UPROPERTY() bool IsPinch;
 	UPROPERTY() bool CanPress;
 	UPROPERTY() bool IsTouch1;
@@ -63,7 +64,7 @@ protected:
 
 	UPROPERTY() FTimerHandle Timer0;
 
-	UPROPERTY() TSubclassOf<AConstruction> Spowned;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<AConstruction> Spowned;
 
 	
 	UPROPERTY() FVector MyLoc;
@@ -72,14 +73,14 @@ protected:
 	UFUNCTION() void FindReferences();
 
 
-	UFUNCTION() void OnMouseWheelAxis(float Value);
+	UFUNCTION() void OnMouseWheelAxis(float Value); //debug function for editor
 
 	UFUNCTION() void OnPinchAxis(float Value);
 	UFUNCTION() void OnPinchPress();
 	UFUNCTION() void OnPinchReleas();
 
 	UFUNCTION() void OnTouchPress(const ETouchIndex::Type FingerIndex, const FVector Loc);
-	UFUNCTION(BlueprintCallable) void OnTouchReleas(const ETouchIndex::Type FingerIndex, const FVector Loc);
+	UFUNCTION() void OnTouchReleas(const ETouchIndex::Type FingerIndex, const FVector Loc);
 	UFUNCTION() void OnTouchMove(const ETouchIndex::Type FingerIndex, const FVector Loc);
 
 	UFUNCTION() void BuildCreatorMove(const FVector Loc);
