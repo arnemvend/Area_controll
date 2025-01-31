@@ -12,6 +12,8 @@ class UMaterialInterface;
 class UStaticMesh;
 class UCapsuleComponent;
 class ATower;
+class UNiagaraComponent;
+class UNiagaraSystem;
 
 
 
@@ -28,11 +30,12 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") FColor Color;
 
 	UFUNCTION() void ColorFunc();
 
-	
+	UPROPERTY() bool IsYour;
 
 	
 
@@ -43,24 +46,32 @@ protected:
 	virtual void Destroyed() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UStaticMeshComponent* TowerMesh;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UStaticMeshComponent* RotMesh;
 
 	UPROPERTY() UStaticMesh* MyStaticMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") UCapsuleComponent* CapsuleInternal;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") UCapsuleComponent* CapsuleExternal;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInterface* TowMaterial;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInterface* RotMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInstanceDynamic* DTowMaterial;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInstanceDynamic* DRotMaterial;
 
 	UPROPERTY() ATower* Tower;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float Health;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float Max;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* Niagara;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* NiagaraBr;
+	UPROPERTY() UNiagaraSystem* NiagaraSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Health;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Max;
 	UPROPERTY() float Health_P;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") float Step;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Step;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ATower> Spowned;
+
+	UPROPERTY() FTimerHandle Timer0;
+	UPROPERTY() FTimerHandle Timer1;
 	
 
 
@@ -68,10 +79,8 @@ protected:
 		AController* InstigatedBy, AActor* DamageCauser);
 	
 	UFUNCTION() void AddHealthFunc();
+	UFUNCTION() void HappyEnd();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ATower> Spowned;
-
-	UPROPERTY() FTimerHandle Timer0;
-	UPROPERTY() FTimerHandle Timer1;
+	
 
 };

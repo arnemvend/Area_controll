@@ -6,7 +6,9 @@
 #include "NiagaraSystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Structure/StructWild.h"
+#include "Core/PreloadActor.h"
+#include "Kismet/GameplayStatics.h"
+#include "Tower/Tower.h"
 
 
 // Sets default values
@@ -35,7 +37,7 @@ AGun::AGun()
 	CanStartTimer = false;
 
 	GunRadius->OnComponentBeginOverlap.AddDynamic(this, &AGun::OnOverlapBegin);
-	GunRadius->OnComponentEndOverlap.AddDynamic(this, &AGun::OnOverlapEnd);
+	//GunRadius->OnComponentEndOverlap.AddDynamic(this, &AGun::OnOverlapEnd); 
 }
 
 
@@ -44,21 +46,82 @@ AGun::AGun()
 //set parameters from structure
 void AGun::Start()
 {
-	FStructWild StructWild;
-	GunMesh->SetStaticMesh(StructWild.Gun_SM[Type]);
-	GunMesh->SetMaterial(0, StructWild.Gun_MI[Type]);
-	GunRadius->SetCapsuleRadius(StructWild.Gun_Radius[Type]);
-	Niagara->SetAsset(StructWild.Gun_NS[Type]);
-	Accurary = StructWild.Gun_Accurary[Type];
-	Gun_Speed = StructWild.Gun_Speed[Type];
-	SpownProjectile = StructWild.Gun_BP[Type];
+	PActor = Cast<APreloadActor>(UGameplayStatics::GetActorOfClass(GetWorld(), APreloadActor::StaticClass()));
 
+	GunMesh->SetStaticMesh(PActor->Gun_SM[Type]);
+	GunMesh->SetMaterial(0, PActor->Gun_MI[Type]);
+	GunRadius->SetCapsuleRadius(PActor->Gun_Radius[Type]);
+	Niagara->SetAsset(PActor->Gun_NS[Type]);
+	Accurary = PActor->Gun_Accurary[Type];
+	Gun_Speed = PActor->Gun_Speed[Type];
+	SpownProjectile = PActor->Gun_BP[Type];
+	PActor = nullptr;
 	//timer by firelogic
 	GetWorldTimerManager().SetTimer(TimerFire, [this]()
 	{
 		if (CanStartTimer)
 		{
-			Fire();
+			if (IsValid(AimActor) == false
+				|| (IsValid(AimActor) && GetHorizontalDistanceTo(AimActor) > (GunRadius->GetScaledCapsuleRadius() + 15.0)))
+			{
+				Niagara->DeactivateImmediate();
+				//check new Towers from AConstruction
+				UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATower::StaticClass(), OutActors);
+				if (OutActors.Num() > 0)
+				{
+					for (int i = 0; i < OutActors.Num(); i++)
+					{
+						Tower = Cast<ATower>(OutActors[i]);
+						if (Tower)
+						{
+							if (GetHorizontalDistanceTo(Tower) <= GunRadius->GetScaledCapsuleRadius())
+							{
+								Aims.AddUnique(Tower);
+							}
+						}
+					}
+				}
+				Tower = nullptr;
+				OutActors.Empty();
+
+				GetWorldTimerManager().PauseTimer(TimerAim);
+				GetWorldTimerManager().PauseTimer(TimerFire);
+				Aims.Remove(AimActor);
+				AimActor = nullptr;
+				if (Aims.Num() > 0)
+				{
+					float Distance = 5000.0;
+					for (int i = 0; i < Aims.Num(); i++)
+					{
+						if(IsValid(Aims[i]) == false
+							|| (IsValid(Aims[i]) && GetHorizontalDistanceTo(Aims[i]) > (GunRadius->GetScaledCapsuleRadius() + 15.0)))
+						{
+							Aims.RemoveAt(i);
+							i = i - 1;
+							/*if (Aims.Num() == 0)
+							{
+								break;
+							}*/
+						}
+						else
+						{
+							if (GetHorizontalDistanceTo(Aims[i]) < Distance)
+							{
+								AimActor = Aims[i];
+								Distance = GetHorizontalDistanceTo(Aims[i]);
+							}
+						}
+					}
+					if (Aims.Num() > 0 && IsValid(AimActor))
+					{
+						Find();
+					}
+				}
+			}
+			else
+			{
+				Fire();
+			}
 		}
 	}, Gun_Speed, true);
 	GetWorldTimerManager().PauseTimer(TimerFire);
@@ -69,22 +132,9 @@ void AGun::Start()
 		if (CanStartTimer)
 		{
 			SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), AimLoc));
-		    if (IsValid(AimActor) == false)
-		    {
-			    Niagara->DeactivateImmediate();
-			    GetWorldTimerManager().PauseTimer(TimerAim);
-			    GetWorldTimerManager().PauseTimer(TimerFire);
-			    Aims.Remove(AimActor);
-				AimActor = nullptr;
-			    if (Aims.Num() > 0)
-			    {
-					AimActor = Aims[0];
-				    Find();
-			    }
-		    }
 		}
 		
-	}, 0.04f, true);
+	}, 0.05f, true);
 	GetWorldTimerManager().PauseTimer(TimerAim);
 	CanStartTimer = true;
 }
@@ -155,36 +205,6 @@ void AGun::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActo
 	}
 }
 
-void AGun::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex)
-{
-	if (Aims.Num() > 0)
-	{
-		if (AimActor == OtherActor)
-		{
-			Niagara->DeactivateImmediate();
-			GetWorldTimerManager().PauseTimer(TimerAim);
-			GetWorldTimerManager().PauseTimer(TimerFire);
-			Aims.Remove(AimActor);
-			AimActor = nullptr;
-			if (Aims.Num() > 0)
-			{
-				if (Aims.Num() > 0)
-				{
-					AimActor = Aims[0];
-					Find();
-				}
-			}
-		}
-		else
-		{
-			if (OtherComp->ComponentHasTag(TEXT("Internal")) || OtherComp->ComponentHasTag(TEXT("InternalEnemy")))
-			{
-				Aims.Remove(OtherActor);
-			}
-		}
-	}
-}
 
 
 // Called when the game starts or when spawned

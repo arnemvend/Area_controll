@@ -7,8 +7,9 @@
 #include "Boom.generated.h"
 
 
-class UNiagaraComponent;
 class UNiagaraSystem;
+class USceneComponent;
+class UNiagaraComponent;
 
 
 
@@ -24,19 +25,24 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Niagara") UNiagaraComponent* NiagaraBoom;
-	UPROPERTY() UNiagaraSystem* NiagaraBoomSystem;
+	UPROPERTY() UNiagaraComponent* NiagaraComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Duration;
+	UPROPERTY() TArray<UNiagaraSystem*> BuildBoomSystem;
+	UPROPERTY() TArray<UNiagaraSystem*> Proj0BoomSystem;
+	UPROPERTY() TArray<UNiagaraSystem*> Proj1BoomSystem;
+	UPROPERTY() TArray<UNiagaraSystem*> LightBoomSystem;
 
-	UFUNCTION() void Boom();
+
+
+	UPROPERTY() float Duration;
+
+	UFUNCTION() void CreateBoomFunc(FVector Loc, FRotator Rot, UNiagaraSystem* Niagara, FColor Color);
 
 protected:
 
 	virtual void BeginPlay() override;
 
 	virtual void Destroyed() override;
-
 
 	UPROPERTY() FTimerHandle Timer0;
 

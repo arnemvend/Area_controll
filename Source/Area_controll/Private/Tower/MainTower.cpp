@@ -2,8 +2,11 @@
 
 
 #include "Tower/MainTower.h"
+#include "NiagaraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
+
+
 
 
 
@@ -151,7 +154,7 @@ void AMainTower::MainFinder(ATower* TTower)
 
 			NotNet = 0;
 			ReFinder(Name);//search on
-
+			
 
 	//}, 0.01f, false);
 
@@ -219,4 +222,32 @@ void AMainTower::ReFinder(FName BName)
 	}
 	Main->CheckEnergy();
 	MainEnemy->CheckEnergy();
+}
+
+
+
+//Start Net FX
+void AMainTower::NetStart(FColor Color)
+{
+	NiagaraNet->Activate();
+	NiagaraNet->SetVariableLinearColor(FName(TEXT("NetColor")), Color);
+}
+
+
+void AMainTower::BeginPlay()
+{
+	Super::BeginPlay();
+
+	Influence = TriggerCapsuleInternal->GetScaledCapsuleRadius() + TriggerCapsuleExternal->GetScaledCapsuleRadius() + 10.0f;
+
+	DTowMaterial = TowerMesh->CreateDynamicMaterialInstance(0, TowMaterial);
+	DTowMaterial->GetScalarParameterValue(TEXT("Param_EmissiveMultiply"), CurrentEmissive);
+	DDiskMaterial = DiskMesh->CreateDynamicMaterialInstance(0, DiskMaterial);
+	DPartShieldMaterial = PartShieldMesh->CreateDynamicMaterialInstance(0, PartShieldMaterial);
+	DSphereShieldMaterial = SphereShieldMesh->CreateDynamicMaterialInstance(0, SphereShieldMaterial);
+
+	IsMainFunc(true);
+
+	ScaleFunc(SphereShieldMesh);
+	ScaleFunc(PartShieldMesh);
 }

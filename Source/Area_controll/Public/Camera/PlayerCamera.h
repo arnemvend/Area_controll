@@ -8,7 +8,7 @@
 
 class USpringArmComponent;
 class UCameraComponent;
-class UFloatingPawnMovement;
+//class UFloatingPawnMovement;
 class UInputComponent;
 
 
@@ -40,7 +40,7 @@ protected:
 	//"Declare components"-------------------------------------------------------------------------------------->
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") USpringArmComponent* GamerSpringArm;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") UFloatingPawnMovement* GamerPawnMovement;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") UFloatingPawnMovement* GamerPawnMovement;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") UCameraComponent* GamerCamera;
 
@@ -52,10 +52,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float SpeedCameraZoom;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float LenghtMax;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float LenghtMin;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float RotMin;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float RotMax;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float SizeWorld; //in Level BP
 	UPROPERTY() FVector2D StartTouchWorldLoc;
 
-
+	UFUNCTION() void SpringArmRotate();
 
 
 };

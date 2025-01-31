@@ -9,10 +9,12 @@
 
 class UStaticMeshComponent;
 class UMaterialInterface;
+class UMaterialInstanceDynamic;
 class UStaticMesh;
 class UNiagaraComponent;
 class UNiagaraSystem;
 class AWild;
+
 
 
 UCLASS()
@@ -38,6 +40,8 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	virtual void Destroyed() override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UStaticMeshComponent* FabricMesh;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UStaticMeshComponent* SquareMesh;
 	UPROPERTY() UStaticMesh* MyStaticMesh;
@@ -46,10 +50,12 @@ protected:
 	UPROPERTY() UNiagaraSystem* NiagaraNetSystem;
 
 	UPROPERTY() UMaterialInterface* Material;
+	UPROPERTY() UMaterialInstanceDynamic* DMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<AWild> Spowned;
+	UPROPERTY() AWild* Wild;
+	UPROPERTY() FTimerHandle Timer0;
 
-	////in Level_BP
-	UFUNCTION(BlueprintCallable) void RotFunc();
-	UFUNCTION(BlueprintCallable) void CreateFunc();
+	UFUNCTION(BlueprintCallable) void RotFunc();//in LevelBP
+	UFUNCTION(BlueprintCallable) void CreateFunc();//in LevelBP
 };

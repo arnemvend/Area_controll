@@ -56,54 +56,70 @@ ABuildCreator::ABuildCreator()
 
 //"Trigger's functions"----------------------------------------------------------------------------------------->
 void ABuildCreator::OnOverlapBegin
-(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	//check Trigger's tag
-	if (OtherActor && OtherComp->ComponentHasTag("External") && CreatorMaterial)
+	if (OtherComp->ComponentHasTag("External"))
 	{
 		ExNumber = ExNumber + 1;
+		if (ExNumber < 1)
+		{
+			ExNumber = 1;
+		}
 		if (ExNumber > 0 && InNumber == 0)
 		{
 			IsReady = true;
-			NewColor = FLinearColor(0.0f, 1.0f, 0.0f, 1.0f);
+			NewColor = FLinearColor::Green;
 			DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
 			DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
 		}
 	}
 
-	if (OtherActor && (OtherComp->ComponentHasTag("Internal") || OtherComp->ComponentHasTag("InternalEnemy")) && CreatorMaterial)
+	if (OtherComp->ComponentHasTag("Internal") || OtherComp->ComponentHasTag("InternalEnemy"))
 	{
 		InNumber = InNumber + 1;
+		if (InNumber < 1)
+		{
+			InNumber = 1;
+		}
 		IsReady = false;
-		NewColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.0f);
+		NewColor = FLinearColor::Red;
 		DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
 		DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
 	}
 }
 
 void ABuildCreator::OnOverlapEnd
-(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	//check Trigger's tag
-	if (OtherActor && OtherComp->ComponentHasTag("External") && CreatorMaterial)
+	if (OtherComp->ComponentHasTag("External"))
 	{
 		ExNumber = ExNumber - 1;
+		if (ExNumber < 0)
+		{
+			ExNumber = 0;
+		}
 		if (ExNumber == 0 || InNumber > 0)
 		{
 			IsReady = false;
-			NewColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.0f);
+			NewColor = FLinearColor::Red;
 			DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
 			DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
 		}
 	}
 
-	if (OtherActor && (OtherComp->ComponentHasTag("Internal") || OtherComp->ComponentHasTag("InternalEnemy")) && CreatorMaterial)
+	if (OtherComp->ComponentHasTag("Internal") || OtherComp->ComponentHasTag("InternalEnemy"))
 	{
 		InNumber = InNumber - 1;
+		if (InNumber < 0)
+		{
+			InNumber = 0;
+		}
 		if (InNumber == 0 && ExNumber > 0)
 		{
 			IsReady = true;
-			NewColor = FLinearColor(0.0f, 1.0f, 0.0f, 1.0f);
+			NewColor = FLinearColor::Green;
 			DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
 			DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
 		}

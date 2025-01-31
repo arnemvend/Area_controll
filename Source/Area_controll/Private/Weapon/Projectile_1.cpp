@@ -44,27 +44,27 @@ AProjectile_1::AProjectile_1()
 	NiagaraSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Claster.NI_Claster'"));
 
 	Niagara0 = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent_0"));
-	Niagara0->SetupAttachment(Sphere0);
+	Niagara0->SetupAttachment(RootComponent);
 	Niagara0->SetAsset(NiagaraSystem);
 	Niagara0->SetAutoActivate(false);
 
 	Niagara1 = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent_1"));
-	Niagara1->SetupAttachment(Sphere1);
+	Niagara1->SetupAttachment(RootComponent);
 	Niagara1->SetAsset(NiagaraSystem);
 	Niagara1->SetAutoActivate(false);
 
 	Niagara2 = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent_2"));
-	Niagara2->SetupAttachment(Sphere2);
+	Niagara2->SetupAttachment(RootComponent);
 	Niagara2->SetAsset(NiagaraSystem);
 	Niagara2->SetAutoActivate(false);
 
 	Niagara3 = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent_3"));
-	Niagara3->SetupAttachment(Sphere3);
+	Niagara3->SetupAttachment(RootComponent);
 	Niagara3->SetAsset(NiagaraSystem);
 	Niagara3->SetAutoActivate(false);
 
 	Niagara4 = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent_4"));
-	Niagara4->SetupAttachment(Sphere4);
+	Niagara4->SetupAttachment(RootComponent);
 	Niagara4->SetAsset(NiagaraSystem);
 	Niagara4->SetAutoActivate(false);
 
@@ -113,6 +113,10 @@ void AProjectile_1::PostReact(USphereComponent* Sphere, UNiagaraComponent* Niaga
 {
 	SphereArr.Remove(Sphere);
 	Sphere->DestroyComponent();
+	if (NiagaraClasterBomb->IsActive())
+	{
+		NiagaraClasterBomb->DeactivateImmediate();
+	}
 	if (CanBoom)
 	{
 		Niagara->SetVariablePosition(FName(TEXT("EndVector")), Loc);
@@ -140,32 +144,14 @@ void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, US
 		&& IsValid(OtherActor))
 	{
 		//logic of damage
-		AController* EventInstigator = GetInstigatorController();
-		UGameplayStatics::ApplyDamage(OtherActor, Damage, EventInstigator, this, UDamageType::StaticClass());
+		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
 		//spown Boom and destroy component
-		EventInstigator = nullptr;
-		const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
-		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, Loc, SpawnRotation);
-		if (Boom)
-		{
-			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom1_obj.NI_Boom1_obj'"));
-	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-		    Boom->Boom();
-		}
-		Boom = nullptr;
+		BoomActor->CreateBoomFunc(Loc, FRotator::ZeroRotator, BoomActor->Proj1BoomSystem[1], FColor::White);
 		PostReact(Sphere, Niagara, Loc);
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
-		const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
-		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, Loc, SpawnRotation);
-		if (Boom)
-		{
-			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom1_gr.NI_Boom1_gr'"));
-	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-		    Boom->Boom();
-		}
-		Boom = nullptr;
+		BoomActor->CreateBoomFunc(Loc, FRotator::ZeroRotator, BoomActor->Proj1BoomSystem[0], FColor::White);
 		PostReact(Sphere, Niagara, Loc);
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
@@ -180,14 +166,7 @@ void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, US
 			Location = Sphere->GetComponentLocation();
 		}
 		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), Location);
-		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, Location, SpawnRotation);
-		if (Boom)
-		{
-			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom0_sh.NI_Boom0_sh'"));
-	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-		    Boom->Boom();
-		}
-		Boom = nullptr;
+		BoomActor->CreateBoomFunc(Location, SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
 		PostReact(Sphere, Niagara, Location);
 	}
 }
@@ -244,6 +223,8 @@ void AProjectile_1::BeginPlay()
 {
 	Super::BeginPlay();
 
+	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
+
 	FRotator Rot = FRotator::ZeroRotator;
 	//set rotation for every spheres
 	for (int i = 0; i < SphereArr.Num(); i++)
@@ -256,7 +237,6 @@ void AProjectile_1::BeginPlay()
 	GetWorldTimerManager().SetTimer(Timer0, [this]()
 	{
 		ProjectileMovement->StopMovementImmediately();
-		NiagaraClasterBomb->Deactivate();
 		CanBoom = true;
 		for (int i = 0; i < NiagaraArr.Num(); i++)
 		{

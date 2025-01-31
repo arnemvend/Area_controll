@@ -44,7 +44,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float InitSpeed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Damage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ABoom> Spowned;
+	UPROPERTY() ABoom* BoomActor;
 
 	UFUNCTION()
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,

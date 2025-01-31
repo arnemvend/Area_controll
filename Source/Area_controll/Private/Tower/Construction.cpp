@@ -2,8 +2,10 @@
 
 
 #include "Tower/Construction.h"
+
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Components/CapsuleComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Tower/Tower.h"
 
@@ -25,18 +27,30 @@ AConstruction::AConstruction()
 	TowerMesh->SetMaterial(0, TowMaterial);
 
 
-	MyStaticMesh = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Buildings/Meshes/Builder.Builder'"));
-	RotMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RotMesh"));
-	RotMesh->SetupAttachment(RootComponent);
-	RotMesh->SetStaticMesh(MyStaticMesh);
-	RotMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Buildings/Materials/MI_Builder.MI_Builder'"));
-	RotMesh->SetMaterial(0, RotMaterial);
-
-
-	CapsuleInternal = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CollisionComponent"));
+	CapsuleInternal = CreateDefaultSubobject<UCapsuleComponent>(TEXT("InternalCollisionComponent"));
 	CapsuleInternal->SetupAttachment(RootComponent);
 	CapsuleInternal->SetCapsuleRadius(28.0f);
 	CapsuleInternal->SetCapsuleHalfHeight(70.0f);
+	CapsuleInternal->ComponentTags.Add(TEXT("Internal"));
+
+
+	CapsuleExternal = CreateDefaultSubobject<UCapsuleComponent>(TEXT("ExternalCollisionComponent"));
+	CapsuleExternal->SetupAttachment(RootComponent);
+	CapsuleExternal->SetCapsuleRadius(200.0f);
+	CapsuleExternal->SetCapsuleHalfHeight(300.0f);
+
+
+	NiagaraSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Buildings/FX/NI_Construction.NI_Construction'"));
+	Niagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Niagara"));
+	Niagara->SetupAttachment(RootComponent);
+	Niagara->SetAsset(NiagaraSystem);
+	Niagara->SetAutoActivate(false);
+
+
+	NiagaraSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Buildings/FX/NI_Builder.NI_Builder'"));
+	NiagaraBr = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraBuilder"));
+	NiagaraBr->SetupAttachment(RootComponent);
+	NiagaraBr->SetAsset(NiagaraSystem);
 
 
 	Health = 10.0f; //initial health
@@ -67,9 +81,20 @@ void AConstruction::OnTakeDamage(AActor* DamagedActor, float Damage, const UDama
 void AConstruction::ColorFunc()
 {
 	DTowMaterial = TowerMesh->CreateDynamicMaterialInstance(0, TowMaterial);
-	DTowMaterial->SetVectorParameterValue(TEXT("Color"), Color);
-	DRotMaterial = RotMesh->CreateDynamicMaterialInstance(0, RotMaterial);
-	DRotMaterial->SetVectorParameterValue(TEXT("Color"), Color);
+	DTowMaterial->SetVectorParameterValue(TEXT("CreatorColor"), Color);
+	Niagara->SetVariableLinearColor(TEXT("Color"), Color);
+	NiagaraBr->SetVariableLinearColor(TEXT("Color"), Color);
+
+
+	//it can't run in BeginPlay in this time. It will fix in future
+	if (IsYour)
+	{
+		CapsuleExternal->ComponentTags.Add(TEXT("External"));
+	}
+	else
+	{
+		CapsuleExternal->ComponentTags.Add(TEXT("ExternalEnemy"));
+	}
 }
 
 
@@ -86,12 +111,31 @@ void AConstruction::AddHealthFunc()
 		Tower = GetWorld()->SpawnActor<ATower>(Spowned, GetActorLocation(), SpawnRotation);
 		if (Tower)
 		{
+			Tower->Start(IsYour);
 			//set health of the spowned tower
 			Tower->Health = Tower->MaxHealth * (Health / Max);
 			Tower->SetDamageFunc();
-			Destroy();
+			
+			NiagaraBr->DeactivateImmediate();
+			GetWorldTimerManager().ClearTimer(Timer1);
+			HappyEnd();
 		}
 	}
+}
+
+
+//start niagara FX and destroy actor
+void AConstruction::HappyEnd()
+{
+	Niagara->Activate();
+	TowerMesh->DestroyComponent();
+	CapsuleInternal->DestroyComponent();
+	CapsuleExternal->DestroyComponent();
+	GetWorldTimerManager().SetTimer(Timer0, [this]()
+		{
+			Niagara->DeactivateImmediate();
+			Destroy();
+		}, 2.0f, false);
 }
 
 
@@ -99,11 +143,6 @@ void AConstruction::AddHealthFunc()
 void AConstruction::BeginPlay()
 {
 	Super::BeginPlay();
-
-	GetWorldTimerManager().SetTimer(Timer0, [this]()
-	{
-		RotMesh->AddWorldRotation(FRotator(0.0f, 0.5f, 0.0));
-	}, 0.04f, true);
 
 	GetWorldTimerManager().SetTimer(Timer1, [this]()
 	{

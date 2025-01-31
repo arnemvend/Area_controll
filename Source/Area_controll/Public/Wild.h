@@ -19,6 +19,7 @@ class UChildActorComponent;
 class USplineComponent;
 class UNiagaraSystem;
 class ABoom;
+class APreloadActor;
 
 
 
@@ -36,21 +37,18 @@ public:
 	UPROPERTY() FVector AimCoord;
 	UPROPERTY() int Type;
 
-	UFUNCTION(BlueprintCallable) void Start();
+	UFUNCTION() void Start();
 
 protected:
 
 	virtual void BeginPlay() override;
 
-	virtual void Destroyed() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) UStaticMeshComponent* Mesh;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) UStaticMeshComponent* MeshLight;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) UStaticMeshComponent* MeshShadow;
 	UPROPERTY() UStaticMesh* MyStaticMesh;
 
 	UPROPERTY() UMaterialInterface* MeshMaterial;
-	UPROPERTY() UMaterialInterface* LightMaterial;
 	UPROPERTY() UMaterialInterface* ShadowMaterial;
 
 	UPROPERTY() UMaterialInstanceDynamic* DMeshMaterial;
@@ -75,8 +73,13 @@ protected:
 
 	UPROPERTY() UNiagaraSystem* NiagaraSystem;
 
+	UPROPERTY() ABoom* BoomActor;
+	UPROPERTY() APreloadActor* PActor;
+
 	
 	UPROPERTY() FVector CurrentCoord;
+	UPROPERTY() FVector CurrentScaleShMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float EndScaleShMesh;
 	UPROPERTY() float Speed;
 	UPROPERTY() float High;
 	UPROPERTY() float Health;
@@ -91,6 +94,8 @@ protected:
 	UFUNCTION() void Continue();
 	UFUNCTION() void MoveFunc(float Amount);
 	UFUNCTION() void HighFunc(float Amount);
+	UFUNCTION() void FinishFunc();
+	UFUNCTION() void DestroyFunc();
 
 	UFUNCTION()
 	void OnBoxOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,

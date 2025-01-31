@@ -2,8 +2,9 @@
 
 #include "Camera/PlayerCamera.h"
 #include "Camera/CameraComponent.h"
-#include "GameFramework/FloatingPawnMovement.h"
+//#include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 APlayerCamera::APlayerCamera()
@@ -24,7 +25,7 @@ APlayerCamera::APlayerCamera()
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	GamerSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	GamerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	GamerPawnMovement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("PawnMovement"));
+	//GamerPawnMovement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("PawnMovement"));
 	GamerSpringArm->SetupAttachment(RootComponent);
 	GamerCamera->SetupAttachment(GamerSpringArm);
 
@@ -32,9 +33,9 @@ APlayerCamera::APlayerCamera()
 
 	//"Set variables for moving"------------------------------------------------------------------------------------->
 	SpeedCameraMove = 1.5;
-	SpeedCameraZoom = 300.0;
-	LenghtMax = 2200.0;
-	LenghtMin = 1000.0;
+	SpeedCameraZoom = 300.0f;
+	LenghtMax = 2200.0f;
+	LenghtMin = 1000.0f;
 }
 
 
@@ -118,8 +119,20 @@ void APlayerCamera::CameraZoom(float A)
 		{
 			GamerSpringArm->TargetArmLength = LenghtMin;
 		}
+		SpringArmRotate();
 	}
 }
+
+
+//set Y-axis rotate of springarm
+void APlayerCamera::SpringArmRotate()
+{
+	GamerSpringArm->SetRelativeRotation(FRotator(
+		UKismetMathLibrary::MapRangeClamped(GamerSpringArm->TargetArmLength,
+			LenghtMin, LenghtMax, RotMin, RotMax),0.0f, 0.0f));
+}
+
+
 
 
 
@@ -136,4 +149,6 @@ void APlayerCamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
+
+
 

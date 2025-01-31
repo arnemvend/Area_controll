@@ -5,11 +5,11 @@
 #include "Boom.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "NiagaraComponent.h"
-#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 #include "TimerManager.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Core/PreloadActor.h"
 #include "HUD/TowerWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -155,11 +155,15 @@ void ATower::ColorsFunc(FColor Color)
 	DTowMaterial->SetVectorParameterValue(TEXT("LightParam"), Color);
 	DTowMaterial->SetVectorParameterValue(TEXT("ClickColor"), Color);
 	DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 1.0f);
+	
+	DTowMaterial->SetScalarParameterValue(TEXT("Param_EmissiveMultiply"), CurrentEmissive);
 
 	DPartShieldMaterial->SetVectorParameterValue(TEXT("BaseColor"), Color);
 	
 	DSphereShieldMaterial->SetVectorParameterValue(TEXT("BaseColor"), Color);
 }
+
+
 
 void ATower::SetDamageFunc()
 {
@@ -177,16 +181,19 @@ void ATower::SetDamageFunc()
 //the function of removing the selection
 void ATower::DeTouch()
 {
-	DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 1.0f);
-	float Op;
-	DDiskMaterial->GetScalarParameterValue(TEXT("Opacity_Param"), Op);
-	DDiskMaterial->SetScalarParameterValue(TEXT("Opacity_Param"), Op / 2);
-	if (TW && TW->IsInViewport())
+	if (IsClicked)
 	{
-		TW->RemoveFromParent();
-		TW->Reset();
+		DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 1.0f);
+		float Op; 
+		DDiskMaterial->GetScalarParameterValue(TEXT("EmissiveMultiply"), Op);
+		DDiskMaterial->SetScalarParameterValue(TEXT("EmissiveMultiply"), Op / 2);
+		if (TW && TW->IsInViewport())
+		{
+			TW->RemoveFromParent();
+			TW->Reset();
+		}
+		IsClicked = false;
 	}
-	IsClicked = false;
 }
 
 //The function of marking the selection
@@ -221,8 +228,8 @@ void ATower::Touch(ETouchIndex::Type FingerIndex, AActor* TouchedActor)
 			UntouchTower = nullptr;
 			DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 0.0f);
 			float Op;
-			DDiskMaterial->GetScalarParameterValue(TEXT("Opacity_Param"), Op);
-			DDiskMaterial->SetScalarParameterValue(TEXT("Opacity_Param"), Op * 2);
+			DDiskMaterial->GetScalarParameterValue(TEXT("EmissiveMultiply"), Op);
+			DDiskMaterial->SetScalarParameterValue(TEXT("EmissiveMultiply"), Op * 2);
 			IsClicked = true;
 			//if the tower has its own, the menu is turned on
 			if (ActorHasTag(FName(TEXT("Your"))))
@@ -254,8 +261,9 @@ void ATower::Repeater()
 		CollisionEnergy->SetCapsuleRadius(1.0f);
 		CollisionEnergy->SetCapsuleHalfHeight(1.0f);
 		DDiskMaterial->SetScalarParameterValue(TEXT("ShadowParam"), 0.0f);
+		TowerMesh->SetStaticMesh(PActor->RMesh);
 		Influence = TriggerCapsuleInternal->GetScaledCapsuleRadius() + TriggerCapsuleExternal->GetScaledCapsuleRadius();
-		NiagaraNet->SetVariableInt(FName(TEXT("SpawnUp")), 2);
+		//NiagaraNet->SetVariableInt(FName(TEXT("SpawnUp")), 2);
 		//restarting the search for disabled towers
 		if (Name == FName(TEXT("Your")))
 		{
@@ -269,6 +277,24 @@ void ATower::Repeater()
 			MainEnemy->ReFinder(MainEnemy->Name);
 			MainEnemy->CheckEnergy();
 		}
+
+		//NiagaraRepeater->SetAsset(NiagaraSystem);
+		NiagaraRepeater = UNiagaraFunctionLibrary::SpawnSystemAttached(PActor->RNSystem, this->RootComponent, NAME_None, FVector::ZeroVector,
+			FRotator(0.0f, -22.5f, 0.0f),
+			EAttachLocation::Type::KeepRelativeOffset, true);
+		if (ActorHasTag(TEXT("Your")))
+		{
+			NiagaraRepeater->SetVariableLinearColor(TEXT("Color"), PActor->YourColor);
+		}
+		else
+		{
+			NiagaraRepeater->SetVariableLinearColor(TEXT("Color"), PActor->EnemyColor);
+		}
+		GetWorldTimerManager().SetTimer(Timer3, [this]()
+		{
+				NiagaraRepeater->DeactivateImmediate();
+				NiagaraRepeater->DestroyComponent();
+		}, 1.5f, false);
 	}
 }
 
@@ -281,8 +307,26 @@ void ATower::Repeater()
 
 
 //-----------------------THERE ARE FUNCTIONS FOR CHECK NET OF TOWERS--------------------------------------------//
+void ATower::Start(bool IsYour)
+{
+	//max distance between Towers in net
+	Influence = TriggerCapsuleInternal->GetScaledCapsuleRadius() + TriggerCapsuleExternal->GetScaledCapsuleRadius() + 10.0f;
+
+	DTowMaterial = TowerMesh->CreateDynamicMaterialInstance(0, TowMaterial);
+	DTowMaterial->GetScalarParameterValue(TEXT("Param_EmissiveMultiply"), CurrentEmissive);
+	DDiskMaterial = DiskMesh->CreateDynamicMaterialInstance(0, DiskMaterial);
+	DPartShieldMaterial = PartShieldMesh->CreateDynamicMaterialInstance(0, PartShieldMaterial);
+	DSphereShieldMaterial = SphereShieldMesh->CreateDynamicMaterialInstance(0, SphereShieldMaterial);
+
+	IsMainFunc(IsYour);
+
+	ScaleFunc(SphereShieldMesh);
+	ScaleFunc(PartShieldMesh);
+}
+
+
 //"Function is setter Main and MainEnemy Actors"----------------------------------------------------------------->
-void ATower::IsMainFunc()
+void ATower::IsMainFunc(bool IsYour)
 {
 	//the search takes place by tag, depending on the creator
 	TArray<AActor*> ActorsWithTag;
@@ -292,10 +336,7 @@ void ATower::IsMainFunc()
 		Main = Cast<AMainTower>(ActorsWithTag[0]);//set Main reference
 		if (Main == this)
 		{
-			TowMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Buildings/Materials/MI_TowerM.MI_TowerM'"));
-			TowerMesh->SetMaterial(0, TowMaterial);
-			DTowMaterial = TowerMesh->CreateDynamicMaterialInstance(0, TowMaterial);
-			ColorsFunc(YourColorGround);
+			ColorsFunc(PActor->YourColor);
 			Main->UpBorder = GetActorLocation().Y;
 			Main->DownBorder = GetActorLocation().Y;
 			Main->RightBorder = GetActorLocation().X;
@@ -312,10 +353,7 @@ void ATower::IsMainFunc()
 		MainEnemy = Cast<AMainTower>(ActorsWithTag[0]);//set MainEnemy reference
 		if (MainEnemy == this)
 		{
-			TowMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Buildings/Materials/MI_TowerM.MI_TowerM'"));
-			TowerMesh->SetMaterial(0, TowMaterial);
-			DTowMaterial = TowerMesh->CreateDynamicMaterialInstance(0, TowMaterial);
-			ColorsFunc(EnemyColorGround);
+			ColorsFunc(PActor->EnemyColor);
 			MainEnemy->UpBorder = GetActorLocation().Y;
 			MainEnemy->DownBorder = GetActorLocation().Y;
 			MainEnemy->RightBorder = GetActorLocation().X;
@@ -323,17 +361,27 @@ void ATower::IsMainFunc()
 			AdressTower.Add(0);
 			MainEnemy->CheckEnergy();
 		}
-		if(Main != this && MainEnemy != this)
-		{
-			ReEnter(Main->Name); //network search
-		}
 	}
-	else
+	//network search
+	if (Main != this && MainEnemy != this)
 	{
-		if (Main != this)
+		if (IsYour)
 		{
-			ReEnter(Main->Name); //network search
+			ReEnter(Main->Name); 
+			if (Tags.Num() == 0)
+			{
+				ReEnter(MainEnemy->Name);
+			}
 		}
+		else
+		{
+			ReEnter(MainEnemy->Name);
+			if (Tags.Num() == 0)
+			{
+				ReEnter(Main->Name);
+			}
+		}
+		
 	}
 	ActorsWithTag.Empty();
 }
@@ -430,7 +478,8 @@ void ATower::SetParam()
 		{
 			TW = TemporaryTower->TW;
 		}
-		Tags.AddUnique(Name);
+		Tags.Empty();
+		Tags.Add(Name);
 		Wave = TemporaryTower->Wave + 1;
 		AdressTower += TemporaryTower->AdressTower;
 		if (TemporaryTower->ChildTowers.Num() > 0)
@@ -451,7 +500,19 @@ void ATower::SetParam()
 		AdressTower.Add(MaxIndex);
 		FVector Nearest = TemporaryTower->GetActorLocation();
 		NiagaraNet->Activate();
-		NiagaraNet->SetVariablePosition(FName(TEXT("EndVector")), FVector(Nearest.X, Nearest.Y, TemporaryTower->NiagaraNet->GetRelativeLocation().Z));
+		if (TemporaryTower->ChildTowers.Num() == 1)
+		{
+			if (TemporaryTower == Main)
+			{
+				Main->NetStart(PActor->YourColor);
+			}
+			if (TemporaryTower == MainEnemy)
+			{
+				MainEnemy->NetStart(PActor->EnemyColor);
+			}
+		}
+		NiagaraNet->SetVariablePosition(FName(TEXT("EndVector")), 
+			FVector(Nearest.X, Nearest.Y, TemporaryTower->NiagaraNet->GetRelativeLocation().Z));
 		InCollName = TemporaryTower->InCollName;
 		TriggerCapsuleInternal->ComponentTags.Empty();
 		TriggerCapsuleInternal->ComponentTags.AddUnique(InCollName);
@@ -468,20 +529,21 @@ void ATower::SetParam()
 	}
 	if (Name == FName(TEXT("Your")))
 	{
-		NiagaraNet->SetVariableLinearColor(FName(TEXT("NetColor")), YourColorGround);
-		ColorsFunc(YourColorGround);
+		NiagaraNet->SetVariableLinearColor(FName(TEXT("NetColor")), PActor->YourColor);
+		ColorsFunc(PActor->YourColor);
 		Main->NotNet = 0;
 		Main->ReFinder(Main->Name);
 		Main->CheckNew(this);
 	}
 	if (Name == FName(TEXT("YourEnemy")))
 	{
-		NiagaraNet->SetVariableLinearColor(FName(TEXT("NetColor")), EnemyColorGround);
-		ColorsFunc(EnemyColorGround);
+		NiagaraNet->SetVariableLinearColor(FName(TEXT("NetColor")), PActor->EnemyColor);
+		ColorsFunc(PActor->EnemyColor);
 		MainEnemy->NotNet = 0;
 		MainEnemy->ReFinder(MainEnemy->Name);
 		MainEnemy->CheckNew(this);
 	}
+	
 }
 
 
@@ -554,7 +616,7 @@ void ATower::PartCommandFunc(bool Up)
 						if (NearestTower
 							&& NearestTower != this
 							&& NearestTower->IsProcessRun == false
-							&& GetHorizontalDistanceTo(NearestTower) >= 70.0f
+							//&& GetHorizontalDistanceTo(NearestTower) >= 70.0f
 							&& GetHorizontalDistanceTo(NearestTower) <= (CollisionEnergy->GetScaledCapsuleRadius() + NearestTower->TriggerCapsuleInternal->GetUnscaledCapsuleRadius()*0.6f)
 							&& NearestTower->SphereShieldMesh->IsVisible() == false
 							&& NearestTower->PartShieldMesh->IsVisible() == false)
@@ -612,6 +674,7 @@ void ATower::PartShieldCreate(FVector InitLoc, bool Up)
 		TLFinish.BindUFunction(this, FName("PShieldOn"));
 		PShieldTimeLine->SetTimelineFinishedFunc(TLFinish);
 		PShieldTimeLine->PlayFromStart();
+
 	}
 	else
 	{
@@ -681,6 +744,8 @@ void ATower::TowerDestroy()
 {
 	if (Tags.Num() == 0)
 	{
+		TriggerCapsuleInternal->DestroyComponent();
+		TriggerCapsuleExternal->DestroyComponent();
 		NetOff();
 		Destroy();
 	}
@@ -689,12 +754,18 @@ void ATower::TowerDestroy()
 		if (Main != this && MainEnemy != this && CanDie)
 		{
 			CanDie = false;
-			if (Name == FName(TEXT("Your")))
+			if (ActorHasTag(TEXT("Your")))
 			{
+				TriggerCapsuleInternal->DestroyComponent();
+				TriggerCapsuleExternal->DestroyComponent();
+				BoomActor->CreateBoomFunc(GetActorLocation(), FRotator::ZeroRotator, BoomActor->BuildBoomSystem[0], PActor->YourColor);
 				Main->MainFinder(this);
 			}
-			if (Name == FName(TEXT("YourEnemy")))
+			if (ActorHasTag(TEXT("YourEnemy")))
 			{
+				TriggerCapsuleInternal->DestroyComponent();
+				TriggerCapsuleExternal->DestroyComponent();
+				BoomActor->CreateBoomFunc(GetActorLocation(), FRotator::ZeroRotator, BoomActor->BuildBoomSystem[0], PActor->EnemyColor);
 				MainEnemy->MainFinder(this);
 			}
 		}
@@ -709,17 +780,21 @@ void ATower::NetOff()
 	Wave = 0;
 	MaxWave = 0;
 	Tags.Empty();
-	//TriggerCapsuleInternal->ComponentTags.Reset();
-	TriggerCapsuleExternal->ComponentTags.Empty();
+	//TriggerCapsuleInternal->ComponentTags.Empty();
+	if (IsValid(TriggerCapsuleExternal))
+	{
+		TriggerCapsuleExternal->ComponentTags.Empty();
+	}
 	CollisionEnergy->ComponentTags.Empty();
 	PartShieldMesh->ComponentTags.Empty();
 	SphereShieldMesh->ComponentTags.Empty();
 	CollisionEnergy->SetCapsuleHalfHeight(1.0f);
 	CollisionEnergy->SetCapsuleRadius(1.0f);
 	DDiskMaterial->SetScalarParameterValue(TEXT("ShadowParam"), 0.0f);
-	DTowMaterial->SetVectorParameterValue(TEXT("LightParam"), DefaultColor);
-	DTowMaterial->SetVectorParameterValue(TEXT("ClickColor"), DefaultColor);
+	DTowMaterial->SetVectorParameterValue(TEXT("LightParam"), PActor->DefaultColor);
+	DTowMaterial->SetVectorParameterValue(TEXT("ClickColor"), PActor->DefaultColor);
 	DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 1.0f);
+	DTowMaterial->SetScalarParameterValue(TEXT("Param_EmissiveMultiply"), 0.0f);
 	IsProcessRun = false;
 	DeTouch();
 	TW = nullptr;
@@ -731,7 +806,19 @@ void ATower::NetOff()
 	if (TemporaryTower && TemporaryTower->ChildTowers.Num() > 0)
 	{
 		TemporaryTower->ChildTowers.RemoveSwap(this);
+		if (TemporaryTower->ChildTowers.Num() == 0)
+		{
+			if (TemporaryTower == Main)
+			{
+				Main->NiagaraNet->DeactivateImmediate();
+			}
+			if (TemporaryTower == MainEnemy)
+			{
+				MainEnemy->NiagaraNet->DeactivateImmediate();
+			}
+		}
 	}
+
 	TemporaryTower = nullptr;
 	FVector CurrentScale = SphereShieldMesh->GetRelativeScale3D();
 	if (CurrentScale.X > 1)
@@ -761,18 +848,8 @@ void ATower::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//max distance between Towers in net
-	Influence = TriggerCapsuleInternal->GetScaledCapsuleRadius() + TriggerCapsuleExternal->GetScaledCapsuleRadius() + 10.0f;
-
-	DTowMaterial = TowerMesh->CreateDynamicMaterialInstance(0, TowMaterial);
-	DDiskMaterial = DiskMesh->CreateDynamicMaterialInstance(0, DiskMaterial);
-	DPartShieldMaterial = PartShieldMesh->CreateDynamicMaterialInstance(0, PartShieldMaterial);
-	DSphereShieldMaterial = SphereShieldMesh->CreateDynamicMaterialInstance(0, SphereShieldMaterial);
-
-	IsMainFunc();
-
-	ScaleFunc(SphereShieldMesh);
-	ScaleFunc(PartShieldMesh);
+	PActor = Cast<APreloadActor>(UGameplayStatics::GetActorOfClass(GetWorld(), APreloadActor::StaticClass()));
+	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
 }
 
 
@@ -794,15 +871,7 @@ void ATower::Destroyed()
 	//GetWorldTimerManager().ClearTimer(Timer1);
 	GetWorldTimerManager().ClearTimer(Timer2);
 	GetWorldTimerManager().ClearTimer(Timer3);
+	GetWorldTimerManager().ClearTimer(Timer4);
 
-	const FRotator SpawnRotation = FRotator::ZeroRotator;
-	ABoom* BoomActor = GetWorld()->SpawnActor<ABoom>(SpownBoom, GetActorLocation(), SpawnRotation);
-	if (BoomActor)
-	{
-		BoomActor->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Buildings/FX/NI_BoomTower.NI_BoomTower'"));
-	    BoomActor->NiagaraBoom->SetAsset(BoomActor->NiagaraBoomSystem);
-	    BoomActor->Duration = 2.0f;
-		BoomActor->Boom();
-	}
-	BoomActor = nullptr;
+
 }

@@ -59,7 +59,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float Splash;
 	UPROPERTY() bool CanBoom;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ABoom> Spowned;
+	UPROPERTY() ABoom* BoomActor;
 
 	UFUNCTION() void PostReact(USphereComponent* Sphere, UNiagaraComponent* Niagara, FVector Loc);
 

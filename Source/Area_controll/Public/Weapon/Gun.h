@@ -16,6 +16,8 @@ class UCapsuleComponent;
 class UMaterialInterface;
 class UTimelineComponent;
 class UCurveFloat;
+class APreloadActor;
+class ATower;
 
 
 
@@ -63,7 +65,10 @@ protected:
 	UPROPERTY() bool CanStartTimer;
 	UPROPERTY() FVector AimLoc;
 	UPROPERTY() TArray<AActor*> Aims;
+	UPROPERTY() TArray<AActor*> OutActors;
 	UPROPERTY() AActor* AimActor;
+	UPROPERTY() APreloadActor* PActor;
+	UPROPERTY() ATower* Tower;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<AActor> SpownProjectile;
 	UPROPERTY() FRotator Rot;
 	UPROPERTY() FTimerHandle TimerAim;
@@ -78,8 +83,8 @@ protected:
 	UFUNCTION()
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
+	/*UFUNCTION()
 	void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
-		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);*/
 
 };

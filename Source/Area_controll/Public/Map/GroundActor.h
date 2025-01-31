@@ -9,6 +9,7 @@
 class UStaticMeshComponent;
 class UStaticMesh;
 class UMaterialInterface;
+class UBoxComponent;
 
 
 UCLASS()
@@ -33,6 +34,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Statick Mesh") UStaticMeshComponent* GroundMesh;
 	UPROPERTY() UStaticMesh* GroundStaticMesh;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Statick Mesh") UMaterialInterface* GroundMaterial;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger") UBoxComponent* BoxComponent;
 
 
 	UFUNCTION() void Touch(ETouchIndex::Type FingerIndex, AActor* TouchedActor);

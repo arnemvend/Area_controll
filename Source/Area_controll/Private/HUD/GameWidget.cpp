@@ -2,10 +2,13 @@
 
 
 #include "HUD/GameWidget.h"
+
+//#include "Android/AndroidPlatformFramePacer.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Core/AreaControll_PlayerController.h"
 #include "Creator/BuildCreator.h"
+//#include "HAL/PlatformFramePacer.h"
 #include "Kismet/GameplayStatics.h"
 #include "Map/GroundActor.h"
 #include "Tower/MainTower.h"
@@ -97,11 +100,11 @@ void UGameWidget::Button_AllShieldClick()
 			//delay before reuse Button_AllShield
 			GetWorld()->GetTimerManager().SetTimer(Timer2, [this]()
 			{
-				if (IsValid(BCreator) == false)
-				{
+				//if (IsValid(BCreator) == false)
+				//{
 					ShieldIsActive = !ShieldIsActive;
 					ButtonTowerIsActive = true;
-				}
+				//}
 			}, 1.1f, false);
 		}
 		Towers.Empty();
@@ -175,6 +178,8 @@ void UGameWidget::NativeConstruct()
 		{
 			Text_YourEnergy->SetText(FText::AsNumber(Main->MassEnergy));
 		}
+		/*int U = FPlatformRHIFramePacer::GetFramePace();
+		Text_ForTests->SetText(FText::AsNumber(U));*/
 		
 	}, 0.2f, true);
 }

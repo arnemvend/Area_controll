@@ -8,10 +8,9 @@
 #include "Components/ChildActorComponent.h"
 #include "Components/SplineComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Structure/StructWild.h"
 #include "Weapon/Gun.h"
-#include "NiagaraSystem.h"
-
+#include "Core/PreloadActor.h"
+#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values
@@ -23,10 +22,6 @@ AWild::AWild()
 
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MainMesh"));
 	Mesh->SetupAttachment(RootComponent);
-
-	MeshLight = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LightMesh"));
-	MeshLight->SetupAttachment(Mesh);
-	MeshLight->SetVisibility(false);
 
 	MeshShadow = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Shadow"));
 	MeshShadow->SetupAttachment(RootComponent);
@@ -67,6 +62,7 @@ AWild::AWild()
 
 	Type = 0; //place in the StructWild
 	CurrentRotation = FRotator::ZeroRotator;
+	EndScaleShMesh = 0.15f;
 
 	Box->OnComponentBeginOverlap.AddDynamic(this, &AWild::OnBoxOverlapBegin);
 	Box->OnComponentEndOverlap.AddDynamic(this, &AWild::OnBoxOverlapEnd);
@@ -78,29 +74,26 @@ AWild::AWild()
 //set start parameters from StructWild
 void AWild::Start()
 {
-	FStructWild StructWild;
+	
 
-	Mesh->SetStaticMesh(StructWild.SM_Main[Type]);
-	MeshMaterial = StructWild.MI_Main[Type];
+	Mesh->SetStaticMesh(PActor->SM_Main[Type]);
+	MeshMaterial = PActor->MI_Main[Type];
 	Mesh->SetMaterial(0, MeshMaterial);
 	DMeshMaterial = Mesh->CreateDynamicMaterialInstance(0, MeshMaterial);
-	MeshLight->SetStaticMesh(StructWild.SM_Light[Type]);
-	MeshLight->SetMaterial(0, StructWild.MI_Light[Type]);
-	MeshShadow->SetMaterial(0, StructWild.MI_Shadow[Type]);
-	NiagaraSystem = StructWild.NS_Boom[Type];
-	Speed = StructWild.Speed[Type];
-	High = StructWild.High[Type];
-	MaxHealth = StructWild.Health[Type];
+	DMeshMaterial->SetVectorParameterValue(TEXT("Emissive"), PActor->WildColor);
+	Speed = PActor->Speed[Type];
+	High = PActor->High[Type];
+	MaxHealth = PActor->Health[Type];
 	Health = MaxHealth;
 	
 	TLCallbackStart.BindUFunction(this, FName("CreateFunc"));
 	if (CurveFloat0)
 	{
 		StartTimeLine->AddInterpFloat(CurveFloat0, TLCallbackStart);
+		TLFinish.BindUFunction(this, FName("Continue"));
+		StartTimeLine->SetTimelineFinishedFunc(TLFinish);
+		StartTimeLine->ReverseFromEnd();
 	}
-	TLFinish.BindUFunction(this, FName("Continue"));
-	StartTimeLine->SetTimelineFinishedFunc(TLFinish);
-	StartTimeLine->ReverseFromEnd();
 }
 
 
@@ -116,7 +109,7 @@ void AWild::CreateFunc(float Amount)
 //setting the trajectory in spline local space
 void AWild::Continue()
 {
-	MeshLight->SetVisibility(true);
+	StartTimeLine->DestroyComponent();
 	Gun->SetVisibility(true);
 	AGun* GunActor = Cast<AGun>(Gun->GetChildActor());
 	GunActor->Type = Type;
@@ -139,21 +132,22 @@ void AWild::Continue()
 	Loc.Y = Loc.Y + UKismetMathLibrary::RandomFloatInRange(-100.0f, 100.0f);
 	Spline->SetLocationAtSplinePoint(1, Loc, ESplineCoordinateSpace::Local, true);
 	//turn to the point 1
-	SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Loc));
+	//SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Loc));
 	//set speed and high of flight
 	MoveTimeLine->SetPlayRate((1 / Spline->GetSplineLength()) * Speed);
 	High = High + UKismetMathLibrary::RandomFloatInRange(-40.0f, 40.0f);
 	
 	TLCallbackMove.BindUFunction(this, FName("MoveFunc"));
 	TLCallbackHigh.BindUFunction(this, FName("HighFunc"));
+	TLFinish.BindUFunction(this, FName("FinishFunc"));
 	if (CurveFloat0 && CurveFloat1)
 	{
 		MoveTimeLine->AddInterpFloat(CurveFloat0, TLCallbackMove);
 		MoveTimeLine->AddInterpFloat(CurveFloat1, TLCallbackHigh);
-	}
-	MoveTimeLine->PlayFromStart();
+		MoveTimeLine->SetTimelineFinishedFunc(TLFinish);
+		MoveTimeLine->PlayFromStart();
+	} 
 }
-
 
 //flight in XY axes
 void AWild::MoveFunc(float Amount)
@@ -162,11 +156,11 @@ void AWild::MoveFunc(float Amount)
 	CurrentCoord.X = Spline->GetLocationAtTime(Amount, ESplineCoordinateSpace::World, true).X;
 	CurrentCoord.Y = Spline->GetLocationAtTime(Amount, ESplineCoordinateSpace::World, true).Y;
 	Mesh->SetWorldLocation(CurrentCoord);
-	CurrentRotation = UKismetMathLibrary::MakeRotFromX(Spline->GetDirectionAtTime(Amount, ESplineCoordinateSpace::World, true));
+	CurrentRotation = UKismetMathLibrary::MakeRotFromX
+	(Spline->GetDirectionAtTime(Amount, ESplineCoordinateSpace::World, true));
 	Mesh->SetWorldRotation(FRotator(0.0f, CurrentRotation.Yaw, 0.0f));
 	//shadow movement
 	MeshShadow->SetWorldLocation(FVector(CurrentCoord.X, CurrentCoord.Y, 0.1f));
-	MeshShadow->SetWorldRotation(FRotator(0.0f, CurrentRotation.Yaw, 0.0f));
 }
 
 
@@ -175,7 +169,21 @@ void AWild::MoveFunc(float Amount)
 void AWild::HighFunc(float Amount)
 {
 	CurrentCoord.Z = UKismetMathLibrary::Lerp(GetActorLocation().Z, High, Amount);
+	CurrentScaleShMesh.X = UKismetMathLibrary::Lerp(CurrentScaleShMesh.X, EndScaleShMesh, Amount);
+	CurrentScaleShMesh.Y = UKismetMathLibrary::Lerp(CurrentScaleShMesh.Y, EndScaleShMesh, Amount);
+	MeshShadow->SetRelativeScale3D(CurrentScaleShMesh);
+	if (Amount == 1.0)
+	{
+		TLCallbackHigh.Unbind();
+	}
 }
+
+void AWild::FinishFunc()
+{
+	MoveTimeLine->DestroyComponent();
+	Spline->DestroyComponent();
+}
+
 
 
 
@@ -186,7 +194,14 @@ void AWild::OnBoxOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Other
 	AWild* WildActor = Cast<AWild>(OtherActor);
 	if (WildActor)
 	{
-		if (WildActor->MoveTimeLine->GetPlaybackPosition() > MoveTimeLine->GetPlaybackPosition())
+		if (IsValid(WildActor->MoveTimeLine) && IsValid(MoveTimeLine))
+		{
+			if (WildActor->MoveTimeLine->GetPlaybackPosition() > MoveTimeLine->GetPlaybackPosition())
+			{
+				MoveTimeLine->Stop();
+			}
+		}
+		if (IsValid(MoveTimeLine) && MoveTimeLine->IsPlaying())
 		{
 			MoveTimeLine->Stop();
 		}
@@ -194,16 +209,34 @@ void AWild::OnBoxOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Other
 	WildActor = nullptr;
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
-		Destroy();
+		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), SweepResult.Location);
+		BoomActor->CreateBoomFunc(SweepResult.Location, SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
+		DestroyFunc();
+	}
+	if (OtherComp->ComponentHasTag(TEXT("Internal"))
+		|| OtherComp->ComponentHasTag(TEXT("InternalEnemy")))
+	{
+		//logic of damage
+		UGameplayStatics::ApplyDamage(OtherActor, 20.0, GetInstigatorController(), this, UDamageType::StaticClass());
+		
 	}
 }
+
+
 void AWild::OnBoxOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
 	AWild* WildActor = Cast<AWild>(OtherActor);
 	if (WildActor)
 	{
-		if (WildActor->MoveTimeLine->GetPlaybackPosition() > MoveTimeLine->GetPlaybackPosition())
+		if (IsValid(WildActor->MoveTimeLine) && IsValid(MoveTimeLine))
+		{
+			if (WildActor->MoveTimeLine->GetPlaybackPosition() > MoveTimeLine->GetPlaybackPosition())
+			{
+				MoveTimeLine->Play();
+			}
+		}
+		if (IsValid(MoveTimeLine) && MoveTimeLine->IsPlaying() == false)
 		{
 			MoveTimeLine->Play();
 		}
@@ -211,7 +244,10 @@ void AWild::OnBoxOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherAc
 	WildActor = nullptr;
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
-		Destroy();
+		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(),
+			OverlappedComp->GetComponentLocation());
+		BoomActor->CreateBoomFunc(OverlappedComp->GetComponentLocation(), SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
+		DestroyFunc();
 	}
 }
 
@@ -223,7 +259,10 @@ void AWild::OnNoseOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 {
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
-		Destroy();
+		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), 
+			OverlappedComp->GetComponentLocation());
+		BoomActor->CreateBoomFunc(OverlappedComp->GetComponentLocation(), SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
+		DestroyFunc();
 	}
 }
 
@@ -236,7 +275,11 @@ void AWild::OnNoseOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherA
 void AWild::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
+	PActor = Cast<APreloadActor>(UGameplayStatics::GetActorOfClass(GetWorld(), APreloadActor::StaticClass()));
+
+	CurrentScaleShMesh = MeshShadow->GetRelativeScale3D();
 }
 
 
@@ -245,23 +288,13 @@ void AWild::BeginPlay()
 void AWild::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 
-
-void AWild::Destroyed()
+void AWild::DestroyFunc()
 {
-	Super::Destroyed();
-
-	const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
-	ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, Mesh->GetComponentLocation(), SpawnRotation);
-	if (Boom)
-	{
-		Boom->NiagaraBoomSystem = NiagaraSystem;
-		Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-		Boom->Boom();
-	}
-	Boom = nullptr;
+	BoomActor->CreateBoomFunc(Mesh->GetComponentLocation(), FRotator::ZeroRotator, BoomActor->LightBoomSystem[Type], PActor->WildColor);
+	Destroy();
 }
+
 

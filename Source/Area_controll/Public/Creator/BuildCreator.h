@@ -53,17 +53,17 @@ protected:
 	UPROPERTY() UMaterialInstanceDynamic* DynamicMaterial;
 	UPROPERTY() UMaterialInstanceDynamic* DynamicMaterial0;
 
-	int InNumber;// Numder of inputs to Internal Thigger
-	int ExNumber;// Numder of inputs to External Thigger
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") int InNumber;// Numder of inputs to Internal Thigger
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") int ExNumber;// Numder of inputs to External Thigger
 
 	
 
 
 	//"Declare event's functions and variables for their"------------------------------------------------------->
 	UFUNCTION()
-	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
-	void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 	
 	
 

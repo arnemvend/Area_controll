@@ -3,6 +3,7 @@
 #include "Core/AreaControll_PlayerController.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCamera.h"
+#include "Core/PreloadActor.h"
 #include "Creator/BuildCreator.h"
 #include "Kismet/GameplayStatics.h"
 #include "Map/GroundActor.h"
@@ -152,8 +153,11 @@ void AAreaControll_PlayerController::OnTouchReleas(const ETouchIndex::Type Finge
 		    Construction = GetWorld()->SpawnActor<AConstruction>(Spowned, BuildCreator->GetActorLocation(), SpawnRotation, SpawnParams);
 			if (Construction)
 			{
-				Construction->Color = MainTower->YourColorGround;
+				APreloadActor* PActor = Cast<APreloadActor>(UGameplayStatics::GetActorOfClass(GetWorld(), APreloadActor::StaticClass()));
+				Construction->Color = PActor->YourColor;
+				Construction->IsYour = true;
 			    Construction->ColorFunc();
+				PActor = nullptr;
 			}
 		}
 		BuildCreator->Destroy();

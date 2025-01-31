@@ -40,6 +40,9 @@ AProjectile_0::AProjectile_0()
 void AProjectile_0::BeginPlay()
 {
 	Super::BeginPlay();
+
+	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
+
 	FVector FVec = Sphere->GetForwardVector() * InitSpeed;
 	//timer for move
 	GetWorldTimerManager().SetTimer(Timer, [this, FVec]()
@@ -54,49 +57,24 @@ void AProjectile_0::BeginPlay()
 void AProjectile_0::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if ((OtherComp->ComponentHasTag(TEXT("Internal")) || OtherComp->ComponentHasTag(TEXT("InternalEnemy"))) 
+	if ((OtherComp->ComponentHasTag(TEXT("Internal")) || OtherComp->ComponentHasTag(TEXT("InternalEnemy")))
 		&& IsValid(OtherActor))
 	{
 		//logic of damage
-		AController* EventInstigator = GetInstigatorController();
-		UGameplayStatics::ApplyDamage(OtherActor, Damage, EventInstigator, this, UDamageType::StaticClass());
+		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
 		//spown Boom and destroy
-		EventInstigator = nullptr;
-		const FRotator SpawnRotation = FRotator::ZeroRotator;
-		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, SweepResult.Location, SpawnRotation);
-		if (Boom)
-		{
-			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom0_obj.NI_Boom0_obj'"));
-	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-		    Boom->Boom();
-		}
-		Boom = nullptr;
+		BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[2], FColor::White);
 		Destroy();
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
-		const FRotator SpawnRotation = FRotator::ZeroRotator;
-		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, SweepResult.Location, SpawnRotation);
-		if (Boom)
-		{
-			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom0_gr.NI_Boom0_gr'"));
-	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-		    Boom->Boom();
-		}
-		Boom = nullptr;
+		BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[1], FColor::White);
 		Destroy();
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
 		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), SweepResult.Location);
-		ABoom* Boom = GetWorld()->SpawnActor<ABoom>(Spowned, SweepResult.Location, SpawnRotation);
-		if (Boom)
-		{
-			Boom->NiagaraBoomSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom0_sh.NI_Boom0_sh'"));
-	        Boom->NiagaraBoom->SetAsset(Boom->NiagaraBoomSystem);
-		    Boom->Boom();
-		}
-		Boom = nullptr;
+		BoomActor->CreateBoomFunc(SweepResult.Location, SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
 		Destroy();
 	}
 }

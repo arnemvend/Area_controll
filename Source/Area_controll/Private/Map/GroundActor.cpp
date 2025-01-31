@@ -4,6 +4,7 @@
 #include "Map/GroundActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Tower/Tower.h"
+#include "Components/BoxComponent.h"
 
 
 // Sets default values
@@ -12,14 +13,16 @@ AGroundActor::AGroundActor()
 	PrimaryActorTick.bCanEverTick = false;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-
-	GroundStaticMesh = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Map/Ground.Ground'")); 
+	
+	GroundStaticMesh = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Weapon/Meshes/square.square'")); 
 	GroundMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GroundMesh"));
 	GroundMesh->SetupAttachment(RootComponent);
 	GroundMesh->SetStaticMesh(GroundStaticMesh);
 	GroundMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Map/MI_Grid.MI_Grid'"));
 	GroundMesh->SetMaterial(0, GroundMaterial);
 
+	BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
+	BoxComponent->SetupAttachment(RootComponent);
 
 	OnInputTouchBegin.AddDynamic(this, &AGroundActor::Touch);
 }

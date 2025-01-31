@@ -56,6 +56,7 @@ protected:
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_FPS; // for debug
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_EnemyEnergy; // for debug
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_YourEnergy; // for debug
+	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_ForTests; // for debug
 
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Tower;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_AllShield;
