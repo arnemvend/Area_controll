@@ -2,10 +2,13 @@
 
 
 #include "WildFabric.h"
+
+#include "Boom.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "Wild.h"
-#include "Core/PreloadActor.h"
+#include "Components/CapsuleComponent.h"
+#include "Core/AreaControll_GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -38,6 +41,12 @@ AWildFabric::AWildFabric()
 	FabricMesh->SetRelativeScale3D(FVector(1.2f, 1.2f, 1.2f));
 	Material = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Weapon/Materials/MI_WildFabric.MI_WildFabric'"));
 	FabricMesh->SetMaterial(0, Material);
+
+
+
+	CaplsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CaplsuleComponent"));
+	CaplsuleComponent->SetupAttachment(RootComponent);
+	CaplsuleComponent->ComponentTags.Add(TEXT("InternalWild"));
 	
 
 
@@ -49,7 +58,11 @@ AWildFabric::AWildFabric()
 	Niagara->SetAsset(NiagaraNetSystem);
 
 	Type = 0;
+	CanDamage = false;
 	Wild = nullptr;
+
+
+	OnTakeAnyDamage.AddDynamic(this, &AWildFabric::OnTakeDamage);
 }
 
 
@@ -67,11 +80,11 @@ void AWildFabric::CreateFunc()
 {
 	Niagara->Activate();//spown FX
 	const FVector Loc = GetActorLocation() + FVector(0.0f, 0.0f, 72.0f);
-	Wild =  GetWorld()->SpawnActor<AWild>(Spowned, Loc, GetActorRotation());
-	if (Wild)
+	Wild =  GetWorld()->SpawnActor<AWild>(Spowned[Type], Loc, GetActorRotation());
+	if (IsValid(Wild))
 	{
 		Wild->AimCoord = AimCoord;
-		Wild->Type = Type;
+		Wild->Color = GInstance->WildColor;
 		Wild->Start();
 		Wild = nullptr;
 	}
@@ -83,27 +96,80 @@ void AWildFabric::CreateFunc()
 
 
 
+
+
+
+void AWildFabric::SetDamageFunc()
+{
+	if (Health <= 0)
+	{
+		Destroy();
+		return;
+	}
+	float const Alpha = FMath::Max(0.1f, Health / MaxHealth);
+	if (DMaterial)
+	{
+		DMaterial->SetScalarParameterValue(TEXT("Damage"), Alpha);
+	}
+}
+
+
+
+
+void AWildFabric::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+	AController* InstigatedBy, AActor* DamageCauser)
+{
+	if (Health > 0 && CanDamage)
+	{
+		Health = Health - Damage;
+		SetDamageFunc();
+	}
+}
+
+
+
+
+
 void AWildFabric::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APreloadActor* PActor = Cast<APreloadActor>(UGameplayStatics::GetActorOfClass(GetWorld(), APreloadActor::StaticClass()));
+	GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
 	DMaterial = FabricMesh->CreateDynamicMaterialInstance(0, Material);
-	DMaterial->SetVectorParameterValue(TEXT("Emissive"), PActor->WildColor);
-	PActor = nullptr;
+	DMaterial->SetVectorParameterValue(TEXT("LightParam"), GInstance->WildColor);
+
+	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
+
+	if (IsValid(GInstance))
+	{
+		MaxHealth = GInstance->WF_MaxHealth;
+		Health = MaxHealth;
+		CanDamage = true;
+	}
 }
+
+
+
 
 void AWildFabric::Destroyed()
 {
-	Super::Destroyed();
-
 	GetWorldTimerManager().ClearTimer(Timer0);
+	if (IsValid(BoomActor) && IsValid(GInstance))
+	{
+		BoomActor->CreateBoomFunc(GetActorLocation(), GetActorRotation(),
+			BoomActor->BuildBoomSystem[2], GInstance->WildColor);
+	}
+
+	CaplsuleComponent->DestroyComponent();
+
+	Super::Destroyed();
 }
+
+
 
 
 void AWildFabric::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 

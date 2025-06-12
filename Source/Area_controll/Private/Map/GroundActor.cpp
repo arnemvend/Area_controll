@@ -3,7 +3,6 @@
 
 #include "Map/GroundActor.h"
 #include "Kismet/GameplayStatics.h"
-#include "Tower/Tower.h"
 #include "Components/BoxComponent.h"
 
 
@@ -28,31 +27,22 @@ AGroundActor::AGroundActor()
 }
 
 
+FOnDeTouchDelegate& AGroundActor::GetOnDeTouchDelegate()
+{
+	return OnDeTouchDelegate;
+}
 
+//unusable delegate for this actor
+FOnShieldDelegate& AGroundActor::GetOnShieldDelegate()
+{
+	return OnShieldDelegate;
+}
 
 
 //finds the TowerMenu and disables it
 void AGroundActor::Touch(ETouchIndex::Type FingerIndex, AActor* TouchedActor)
 {
-	TArray<AActor*> Towers;
-	ATower* Tow{};
-	UGameplayStatics::GetAllActorsWithTag(GetWorld(), TEXT("Your"), Towers);
-	if (Towers.Num() > 0)
-	{
-		for (int i = 0; i < Towers.Num(); i++)
-		{
-			if (Towers[i])
-			{
-				Tow = Cast<ATower>(Towers[i]);
-			}
-			if (Tow && Tow->IsClicked)
-			{
-				Tow->DeTouch();
-			}
-		}
-	}
-	Towers.Empty();
-	Tow = nullptr;
+	OnDeTouchDelegate.Broadcast(0);
 }
 
 
@@ -73,4 +63,6 @@ void AGroundActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
+
+
 

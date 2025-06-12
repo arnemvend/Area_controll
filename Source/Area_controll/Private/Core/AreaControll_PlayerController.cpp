@@ -1,14 +1,13 @@
 // Copyright (c) Konstantin Pozdeev. All rights reserved.
 
 #include "Core/AreaControll_PlayerController.h"
-#include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCamera.h"
-#include "Core/PreloadActor.h"
+#include "Core/AreaControll_GameInstance.h"
+#include "Core/AreaControll_GameMode.h"
 #include "Creator/BuildCreator.h"
 #include "Kismet/GameplayStatics.h"
 #include "Map/GroundActor.h"
 #include "Tower/Construction.h"
-#include "Tower/Tower.h"
 
 
 
@@ -37,16 +36,9 @@ void AAreaControll_PlayerController::FindReferences()
 	PlayerCamera = Cast<APlayerCamera>(UGameplayStatics::GetActorOfClass(GetWorld(), APlayerCamera::StaticClass()));
 	//set array for parameter "ignored actors" in LineTraceByChannel
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), OutActors);
-	if (GroundActor && OutActors.Num() > 0)
+	if (IsValid(GroundActor) && OutActors.Num() > 0)
 	{
-		OutActors.Remove(GroundActor);
-		for (int i = 0; i < OutActors.Num(); i++)
-		{
-			if (OutActors[i]->ActorHasTag(FName(TEXT("Main"))))
-			{
-				MainTower = Cast<ATower>(OutActors[i]);
-			}
-		}
+		OutActors.RemoveSwap(GroundActor);
 	}
 }
 
@@ -55,7 +47,7 @@ void AAreaControll_PlayerController::FindReferences()
 //debug function for editor
 void AAreaControll_PlayerController::OnMouseWheelAxis(float Value)
 {
-	if (PlayerCamera && Value != 0.0f && (IsValid(BuildCreator) == false || CreatorIsHere == false))
+	if (IsValid(PlayerCamera) && Value != 0.0f && (!IsValid(BuildCreator) || !CreatorIsHere))
 	{
 		PlayerCamera->CameraZoom(Value);
 	}
@@ -72,7 +64,7 @@ void AAreaControll_PlayerController::OnPinchAxis(float Value)
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
 	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
 
-	if (PlayerCamera && Value != 0.0f && (IsValid(BuildCreator) == false || CreatorIsHere == false))
+	if (IsValid(PlayerCamera) && Value != 0.0f && (!IsValid(BuildCreator) || !CreatorIsHere))
 	{
 		if (IsTouch1 && IsTouch2)
 		{
@@ -96,7 +88,7 @@ void AAreaControll_PlayerController::OnPinchPress()
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
 	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
 
-	if (IsValid(BuildCreator) == false && PlayerCamera && CreatorIsHere == false)
+	if (!IsValid(BuildCreator) && !CreatorIsHere)
 	{
 		IsPinch = true;
 		if (CanPress)
@@ -132,7 +124,7 @@ void AAreaControll_PlayerController::OnTouchPress(const ETouchIndex::Type Finger
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
 	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
 	//player can't move camera if BuildCreator is valid
-	if (IsValid(BuildCreator) == false  && IsPinch == false  && IsTouch1  && IsTouch2 == false && CreatorIsHere == false)
+	if (!IsValid(BuildCreator) && !IsPinch && IsTouch1  && !IsTouch2 && !CreatorIsHere)
 	{
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
 		PlayerCamera->StartTouchMove(Position);
@@ -143,22 +135,24 @@ void AAreaControll_PlayerController::OnTouchPress(const ETouchIndex::Type Finger
 //declare about end touch action, spown Construction object, destroy BuildCreator object
 void AAreaControll_PlayerController::OnTouchReleas(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
-	if (BuildCreator && CreatorIsHere)
+	if (IsValid(BuildCreator) && CreatorIsHere)
 	{
-		//check is it possible to build
-		if (BuildCreator->IsReady)
+		if (BuildCreator->IsReady && IsValid(SpownedC))
 		{
-			const FRotator SpawnRotation = FRotator::ZeroRotator;
-		    FActorSpawnParameters SpawnParams;
-		    Construction = GetWorld()->SpawnActor<AConstruction>(Spowned, BuildCreator->GetActorLocation(), SpawnRotation, SpawnParams);
-			if (Construction)
+			//check is it possible to build
+			Construction = GetWorld()->SpawnActor<AConstruction>
+				(SpownedC, BuildCreator->GetActorLocation(), FRotator::ZeroRotator);
+			UAreaControll_GameInstance* GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
+			AAreaControll_GameMode* GMode = Cast<AAreaControll_GameMode>(GetWorld()->GetAuthGameMode());
+			if (IsValid(Construction) && IsValid(GInstance) && IsValid(GMode))
 			{
-				APreloadActor* PActor = Cast<APreloadActor>(UGameplayStatics::GetActorOfClass(GetWorld(), APreloadActor::StaticClass()));
-				Construction->Color = PActor->YourColor;
+				GMode->PlayerEnergy = FMath::Max(0, GMode->PlayerEnergy - GInstance->Cn_EnergyPrice);
+				Construction->Color = GInstance->YourColor;
 				Construction->IsYour = true;
-			    Construction->ColorFunc();
-				PActor = nullptr;
+				Construction->ColorFunc();
 			}
+			GInstance = nullptr;
+			GMode = nullptr;
 		}
 		BuildCreator->Destroy();
 		OutActors.Empty();
@@ -173,13 +167,13 @@ void AAreaControll_PlayerController::OnTouchMove(const ETouchIndex::Type FingerI
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
 	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
 
-	if (IsValid(BuildCreator) == false && IsPinch == false && IsTouch1 && IsTouch2 == false && CreatorIsHere == false)
+	if (!IsValid(BuildCreator) && !IsPinch && IsTouch1 && !IsTouch2 && !CreatorIsHere)
 	{
 		//sending the coordinates of the touch to the camera
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
 		PlayerCamera->TouchMove(Position);
 	}
-	if (IsPinch == false && IsTouch1 && IsTouch2 == false && CreatorIsHere && BuildCreator)
+	if (!IsPinch && IsTouch1 && !IsTouch2 && CreatorIsHere && IsValid(BuildCreator))
 	{
 		//supdate BuildCreator coordinates
 		BuildCreatorMove(Loc);
@@ -208,7 +202,8 @@ void AAreaControll_PlayerController::TouchToWorld(float X, float Y, TArray<AActo
 	FCollisionQueryParams TraceParams;
 	TraceParams.AddIgnoredActors(Actors);
 	End = End * 1000000000000000000000000000000000000.0f;
-	if ([[maybe_unused]] bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, TraceParams))
+	if ([[maybe_unused]] bool bHit = GetWorld()->LineTraceSingleByChannel
+	    (HitResult, Start, End, ECC_Visibility, TraceParams))
 	{
 		Position.X = HitResult.Location.X;
 		Position.Y = HitResult.Location.Y;
@@ -221,13 +216,44 @@ void AAreaControll_PlayerController::TouchToWorld(float X, float Y, TArray<AActo
 
 
 
+//update OutActors
+void AAreaControll_PlayerController::SpownCreatorFunc()
+{
+
+	if (!IsValid(BuildCreator))
+	{
+		const FRotator SpawnRotation = FRotator::ZeroRotator;
+		const FActorSpawnParameters SpawnParams;
+		const FVector SpawnLoc = FVector(0.0f, 0.0f, -2000.0f);
+		BuildCreator = GetWorld()->SpawnActor<ABuildCreator>(SpownedB, SpawnLoc, SpawnRotation, SpawnParams);
+		//reload ignored actors in Player_Controller
+		OutActors.Empty(0);
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), OutActors);
+		OutActors.RemoveSwap(GroundActor);
+		CreatorIsHere = true;
+		//bugfix. check. is there BuildCreator in world
+		GetWorld()->GetTimerManager().SetTimer(Timer1, [this]()
+			{
+				if (!IsValid(BuildCreator))
+				{
+					CreatorIsHere = false;
+					GetWorld()->GetTimerManager().ClearTimer(Timer1);
+				}
+			}, 0.04f, true);
+	}
+}
+
+
+
+
+
 void AAreaControll_PlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	
 
-	if (BuildCreator && FVector2D(MyLoc.X, MyLoc.Y) == Loc1 && BuildCreator->GetActorLocation().Z > 0.0f)
+	if (IsValid(BuildCreator) && FVector2D(MyLoc.X, MyLoc.Y) == Loc1 && BuildCreator->GetActorLocation().Z > 0.0f)
 	{
 		BuildCreatorMove(FVector(MyLoc));
 	}
@@ -242,9 +268,10 @@ void AAreaControll_PlayerController::BeginPlay()
 
 void AAreaControll_PlayerController::Destroyed()
 {
-	Super::Destroyed();
-
 	GetWorldTimerManager().ClearTimer(Timer0);
+	GetWorldTimerManager().ClearTimer(Timer1);
+
+	Super::Destroyed();
 }
 
 

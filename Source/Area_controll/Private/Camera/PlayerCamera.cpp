@@ -2,7 +2,6 @@
 
 #include "Camera/PlayerCamera.h"
 #include "Camera/CameraComponent.h"
-//#include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -25,14 +24,14 @@ APlayerCamera::APlayerCamera()
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	GamerSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	GamerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	//GamerPawnMovement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("PawnMovement"));
 	GamerSpringArm->SetupAttachment(RootComponent);
 	GamerCamera->SetupAttachment(GamerSpringArm);
 
 
 
 	//"Set variables for moving"------------------------------------------------------------------------------------->
-	SpeedCameraMove = 1.5;
+	SpeedCameraMove = 1.5f;
+	SpeedCameraScreen = 1.5f;
 	SpeedCameraZoom = 300.0f;
 	LenghtMax = 2200.0f;
 	LenghtMin = 1000.0f;
@@ -87,20 +86,24 @@ void APlayerCamera::CameraMove(FVector2D Loc, FIntPoint ScreenSize)
 {
 	if ((Loc.X < (ScreenSize.X * 0.08)) && (GetActorLocation().X <= SizeWorld))
 	{
-		AddMovementInput(GetActorRightVector(), -1);
+		AddActorWorldOffset(GetActorRightVector() * (-1.0f) * SpeedCameraScreen);
 	}
 	if ((Loc.Y < (ScreenSize.Y * 0.08)) && (GetActorLocation().Y <= SizeWorld))
 	{
-		AddMovementInput(GetActorForwardVector());
+		//AddMovementInput(GetActorForwardVector());
+		AddActorWorldOffset(GetActorForwardVector() * SpeedCameraScreen);
 	}
 	if ((Loc.X > (ScreenSize.X * 0.92)) && (GetActorLocation().X >= -SizeWorld))
 	{
-		AddMovementInput(GetActorRightVector());
+		AddActorWorldOffset(GetActorRightVector() * SpeedCameraScreen);
+		//AddMovementInput(GetActorRightVector());
 	}
 	if ((Loc.Y > (ScreenSize.Y * 0.92)) && (GetActorLocation().Y >= -SizeWorld))
 	{
 		AddMovementInput(GetActorForwardVector(), -1);
+		AddActorWorldOffset(GetActorForwardVector() * (-1.0f) * SpeedCameraScreen);
 	}
+	
 }
 
 

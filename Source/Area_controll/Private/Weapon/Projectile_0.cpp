@@ -8,19 +8,22 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "Core/AreaControll_GameInstance.h"
 
 
 AProjectile_0::AProjectile_0()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
-	InitialLifeSpan = 2.0f;
+	InitialLifeSpan = 1.0f;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
+
 	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	Sphere->SetupAttachment(RootComponent);
-	Sphere->SetSphereRadius(2.0f);
+	Sphere->SetSphereRadius(4.0f);
+	
 
 	MyStaticMesh = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Weapon/Meshes/pr0.pr0'"));
 	PMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
@@ -30,10 +33,9 @@ AProjectile_0::AProjectile_0()
 	PMesh->SetMaterial(0, PMaterial);
 	PMesh->SetWorldScale3D(FVector(2.0f, 0.2f, 0.2f));
 
-	InitSpeed = 60.0f;
-	Damage = 2.0f;
-
 	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AProjectile_0::OnOverlapBegin);
+
+	InitSpeed = 60.0f;
 }
 
 // Called when the game starts or when spawned
@@ -42,14 +44,18 @@ void AProjectile_0::BeginPlay()
 	Super::BeginPlay();
 
 	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
-
+	UAreaControll_GameInstance* GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
+	if (IsValid(GInstance))
+	{
+		Damage = GInstance->G0_Damage;
+	}
+	GInstance = nullptr;
 	FVector FVec = Sphere->GetForwardVector() * InitSpeed;
 	//timer for move
 	GetWorldTimerManager().SetTimer(Timer, [this, FVec]()
 	{
 		Sphere->AddWorldOffset(FVec, true);
 	}, 0.05f, true);
-	
 }
 
 
@@ -57,27 +63,35 @@ void AProjectile_0::BeginPlay()
 void AProjectile_0::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if ((OtherComp->ComponentHasTag(TEXT("Internal")) || OtherComp->ComponentHasTag(TEXT("InternalEnemy")))
-		&& IsValid(OtherActor))
-	{
-		//logic of damage
-		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
-		//spown Boom and destroy
-		BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[2], FColor::White);
-		Destroy();
-	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[1], FColor::White);
 		Destroy();
+		return;
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
 		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), SweepResult.Location);
 		BoomActor->CreateBoomFunc(SweepResult.Location, SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
 		Destroy();
+		return;
+	}
+	if (EnemyNames.Num() > 0)
+	{
+		for (int i = 0; i < EnemyNames.Num(); i++)
+		{
+			if (IsValid(OtherComp) && OtherComp->ComponentHasTag(EnemyNames[i]))
+			{
+				UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
+				//spown Boom and destroy
+				BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[2], FColor::White);
+				Destroy();
+				return;
+			}
+		}
 	}
 }
+
 
 
 
@@ -91,9 +105,9 @@ void AProjectile_0::Tick(float DeltaTime)
 
 void AProjectile_0::Destroyed()
 {
-	Super::Destroyed();
-
 	GetWorldTimerManager().ClearTimer(Timer);
+
+	Super::Destroyed();
 }
 
 

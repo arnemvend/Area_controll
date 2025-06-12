@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Weapon/Projectile.h"
 #include "Projectile_1.generated.h"
 
 
@@ -15,7 +15,7 @@ class UProjectileMovementComponent;
 
 
 UCLASS()
-class AREA_CONTROLL_API AProjectile_1 : public AActor
+class AREA_CONTROLL_API AProjectile_1 : public AProjectile
 {
 	GENERATED_BODY()
 	
@@ -55,13 +55,16 @@ protected:
 	UPROPERTY() FTimerHandle Timer0;
 	UPROPERTY() FTimerHandle Timer1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) float Damage;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) float Splash;
+	UPROPERTY() float Damage;
+	UPROPERTY() float Splash;
 	UPROPERTY() bool CanBoom;
+	UPROPERTY() int Step;
 	
 	UPROPERTY() ABoom* BoomActor;
 
 	UFUNCTION() void PostReact(USphereComponent* Sphere, UNiagaraComponent* Niagara, FVector Loc);
+
+	
 
 	UFUNCTION()
 	void React(AActor* OtherActor, UPrimitiveComponent* OtherComp, USphereComponent* Sphere, UNiagaraComponent* Niagara, FVector Loc);

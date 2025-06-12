@@ -26,3 +26,35 @@ List of updates:
 <img src="https://github.com/arnemvend/arnemvend/blob/main/images/03_AC.jpg" height="350"/>
 <img src="https://github.com/arnemvend/arnemvend/blob/main/images/04_AC.jpg" height="350"/>
 </div>
+
+
+---
+UPD
+---
+List of updates:
+- Added weapons and their construction logic. Towers can now defend themselves.
+- Added energy accumulation and spending logic.
+- Core stats of units and weapons have been moved to GameInstance.
+- Added automatic repair.
+- Fixed shield mechanics.
+- Fixed construction logic.
+- Adjusted network search logic. Tower pointers are now stored in arrays within GameMode.
+
+---
+<div>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/05_AC.jpg" height="350"/>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/06_AC.jpg" height="350"/>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -8,12 +8,15 @@
 
 
 class UStaticMeshComponent;
+class UCapsuleComponent;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
 class UStaticMesh;
 class UNiagaraComponent;
 class UNiagaraSystem;
+class UAreaControll_GameInstance;
 class AWild;
+class ABoom;
 
 
 
@@ -49,13 +52,28 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* Niagara;
 	UPROPERTY() UNiagaraSystem* NiagaraNetSystem;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger") UCapsuleComponent* CaplsuleComponent;
+
 	UPROPERTY() UMaterialInterface* Material;
 	UPROPERTY() UMaterialInstanceDynamic* DMaterial;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<AWild> Spowned;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TArray<TSubclassOf<AWild>> Spowned;
+
+	UPROPERTY() UAreaControll_GameInstance* GInstance;
+
+	UPROPERTY() ABoom* BoomActor;
 	UPROPERTY() AWild* Wild;
 	UPROPERTY() FTimerHandle Timer0;
 
+	UPROPERTY() bool CanDamage;
+
+
+	UPROPERTY() float Health;
+	UPROPERTY() float MaxHealth;
+
 	UFUNCTION(BlueprintCallable) void RotFunc();//in LevelBP
 	UFUNCTION(BlueprintCallable) void CreateFunc();//in LevelBP
+	UFUNCTION() void SetDamageFunc();
+	UFUNCTION() void OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+		AController* InstigatedBy, AActor* DamageCauser);
 };

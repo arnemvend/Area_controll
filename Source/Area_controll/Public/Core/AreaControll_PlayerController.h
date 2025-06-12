@@ -10,7 +10,6 @@ class ABuildCreator;
 class AConstruction;
 class AGroundActor;
 class APlayerCamera;
-class ATower;
 
 
 
@@ -27,10 +26,8 @@ public:
 
 	UPROPERTY() bool CreatorIsHere;
 
-	UPROPERTY() ABuildCreator* BuildCreator;
-	UPROPERTY() AGroundActor* GroundActor;
-	UPROPERTY() TArray<AActor*> OutActors;
-
+	UFUNCTION() void SpownCreatorFunc();
+	UFUNCTION() void FindReferences();
 
 protected:
 
@@ -44,8 +41,10 @@ protected:
 	
 	
 	UPROPERTY() APlayerCamera* PlayerCamera;
-	UPROPERTY() ATower* MainTower;
 	UPROPERTY() AConstruction* Construction;
+	UPROPERTY() ABuildCreator* BuildCreator;
+	UPROPERTY() AGroundActor* GroundActor;
+	UPROPERTY() TArray<AActor*> OutActors;
 	
 
 	UPROPERTY() float InitDistance;
@@ -63,15 +62,13 @@ protected:
 
 
 	UPROPERTY() FTimerHandle Timer0;
+	UPROPERTY() FTimerHandle Timer1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<AConstruction> Spowned;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<AConstruction> SpownedC;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ABuildCreator> SpownedB;
 
 	
 	UPROPERTY() FVector MyLoc;
-
-
-	UFUNCTION() void FindReferences();
-
 
 	UFUNCTION() void OnMouseWheelAxis(float Value); //debug function for editor
 
@@ -86,5 +83,7 @@ protected:
 	UFUNCTION() void BuildCreatorMove(const FVector Loc);
 
 	UFUNCTION() void TouchToWorld(float X, float Y, TArray<AActor*> Actors);
+
+	
 	
 };

@@ -15,7 +15,7 @@ class AREA_CONTROLL_API AMainTower : public ATower
 
 public:
 
-	//AMainTower();
+	AMainTower();
 
 	virtual void BeginPlay() override;
 
@@ -24,6 +24,11 @@ public:
 	UPROPERTY() float RightBorder;
 	UPROPERTY() float LeftBorder;
 	UPROPERTY() int MassEnergy;
+	UPROPERTY() int MaxEnergy;
+	UPROPERTY() int NotNet;
+
+
+
 
 
 
@@ -39,7 +44,10 @@ public:
 protected:
 
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") int EnergyPoint;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float EnergyStep;
+	UPROPERTY() int EnergyPoint;
+	UPROPERTY() float EnergyStep;
+
+
+
 
 };

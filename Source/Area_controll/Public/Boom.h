@@ -8,7 +8,6 @@
 
 
 class UNiagaraSystem;
-class USceneComponent;
 class UNiagaraComponent;
 
 
@@ -23,28 +22,30 @@ public:
 
 	ABoom();
 
-	virtual void Tick(float DeltaTime) override;
+
 
 	UPROPERTY() UNiagaraComponent* NiagaraComponent;
+
+	UPROPERTY() UNiagaraSystem* ProjT01BoomSystem;
+	UPROPERTY() UNiagaraSystem* ProjT10BoomSystem;
+	UPROPERTY() UNiagaraSystem* ProjT11BoomSystem;
+	UPROPERTY() UNiagaraSystem* ProjT20BoomSystem;
 
 	UPROPERTY() TArray<UNiagaraSystem*> BuildBoomSystem;
 	UPROPERTY() TArray<UNiagaraSystem*> Proj0BoomSystem;
 	UPROPERTY() TArray<UNiagaraSystem*> Proj1BoomSystem;
+	UPROPERTY() TArray<UNiagaraSystem*> ProjT00BoomSystem;
 	UPROPERTY() TArray<UNiagaraSystem*> LightBoomSystem;
+	
 
 
 
-	UPROPERTY() float Duration;
 
 	UFUNCTION() void CreateBoomFunc(FVector Loc, FRotator Rot, UNiagaraSystem* Niagara, FColor Color);
 
 protected:
 
-	virtual void BeginPlay() override;
 
-	virtual void Destroyed() override;
-
-	UPROPERTY() FTimerHandle Timer0;
 
 	
 };

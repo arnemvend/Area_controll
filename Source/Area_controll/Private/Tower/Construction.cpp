@@ -2,10 +2,10 @@
 
 
 #include "Tower/Construction.h"
-
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Components/CapsuleComponent.h"
+#include "Core/AreaControll_GameInstance.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Tower/Tower.h"
 
@@ -45,20 +45,14 @@ AConstruction::AConstruction()
 	Niagara->SetupAttachment(RootComponent);
 	Niagara->SetAsset(NiagaraSystem);
 	Niagara->SetAutoActivate(false);
+	Niagara->SetAutoDestroy(true);
+	Niagara->OnSystemFinished.AddDynamic(this, &AConstruction::OnNiagaraSystemFinished);
 
 
 	NiagaraSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Buildings/FX/NI_Builder.NI_Builder'"));
 	NiagaraBr = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraBuilder"));
 	NiagaraBr->SetupAttachment(RootComponent);
 	NiagaraBr->SetAsset(NiagaraSystem);
-
-
-	Health = 10.0f; //initial health
-	Health_P = Health; //initial counter
-	Max = 30.0f; // max health
-	Step = 2.0f; // add value health and counter per time
-
-	OnTakeAnyDamage.AddDynamic(this, &AConstruction::OnTakeDamage);
 }
 
 
@@ -70,7 +64,6 @@ void AConstruction::OnTakeDamage(AActor* DamagedActor, float Damage, const UDama
 	Health = Health - Damage;
 	if (Health <= 0)
 	{
-		
 		Destroy();
 	}
 }
@@ -84,6 +77,7 @@ void AConstruction::ColorFunc()
 	DTowMaterial->SetVectorParameterValue(TEXT("CreatorColor"), Color);
 	Niagara->SetVariableLinearColor(TEXT("Color"), Color);
 	NiagaraBr->SetVariableLinearColor(TEXT("Color"), Color);
+	NiagaraBr->SetVariableStaticMesh(TEXT("SousceMesh"), MyStaticMesh);
 
 
 	//it can't run in BeginPlay in this time. It will fix in future
@@ -103,21 +97,23 @@ void AConstruction::ColorFunc()
 //Logic of building
 void AConstruction::AddHealthFunc()
 {
-	Health = Health + Step; //real health
+	Health = FMath::Min(Health + Step, Max); //real health
 	Health_P = Health_P + Step; //value in the counter
 	if (Health_P >= Max)
 	{
-		const FRotator SpawnRotation = FRotator(0.0f, 0.0f, 0.0f);
-		Tower = GetWorld()->SpawnActor<ATower>(Spowned, GetActorLocation(), SpawnRotation);
-		if (Tower)
+		CapsuleInternal->DestroyComponent();
+		CapsuleExternal->DestroyComponent();
+		Tower = GetWorld()->SpawnActor<ATower>(Spowned, GetActorLocation(), FRotator::ZeroRotator);
+		if (IsValid(Tower))
 		{
-			Tower->Start(IsYour);
 			//set health of the spowned tower
+			Tower->MaxHealth = GInstance->Tr_MaxHealth;
 			Tower->Health = Tower->MaxHealth * (Health / Max);
 			Tower->SetDamageFunc();
+			Tower->Start(IsYour);
 			
 			NiagaraBr->DeactivateImmediate();
-			GetWorldTimerManager().ClearTimer(Timer1);
+			GetWorldTimerManager().ClearTimer(Timer0);
 			HappyEnd();
 		}
 	}
@@ -127,16 +123,19 @@ void AConstruction::AddHealthFunc()
 //start niagara FX and destroy actor
 void AConstruction::HappyEnd()
 {
+	TowerMesh->SetVisibility(false);
 	Niagara->Activate();
-	TowerMesh->DestroyComponent();
-	CapsuleInternal->DestroyComponent();
-	CapsuleExternal->DestroyComponent();
-	GetWorldTimerManager().SetTimer(Timer0, [this]()
-		{
-			Niagara->DeactivateImmediate();
-			Destroy();
-		}, 2.0f, false);
 }
+
+
+
+void AConstruction::OnNiagaraSystemFinished(UNiagaraComponent* NiagaraComponent)
+{
+	Destroy();
+}
+
+
+
 
 
 // Called when the game starts or when spawned
@@ -144,7 +143,19 @@ void AConstruction::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorldTimerManager().SetTimer(Timer1, [this]()
+	GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
+
+	if (IsValid(GInstance))
+	{
+		Health = GInstance->Cn_StartHealth; //initial health
+		Health_P = Health; //initial counter
+		Max = GInstance->Cn_MaxHealth; // max health
+		Step = GInstance->Cn_AddHealth; // add value health and counter per time
+
+		OnTakeAnyDamage.AddDynamic(this, &AConstruction::OnTakeDamage);
+	}
+
+	GetWorldTimerManager().SetTimer(Timer0, [this]()
 	{
 		AddHealthFunc();
 	}, 1.0f, true);
@@ -153,19 +164,12 @@ void AConstruction::BeginPlay()
 
 
 
-// Called every frame
-void AConstruction::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
 
 void AConstruction::Destroyed()
 {
-	Super::Destroyed();
-
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
+
+	Super::Destroyed();
 }
 

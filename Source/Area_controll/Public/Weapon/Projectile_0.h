@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Weapon/Projectile.h"
 #include "Projectile_0.generated.h"
 
 
@@ -16,7 +16,7 @@ class ABoom;
 
 
 UCLASS()
-class AREA_CONTROLL_API AProjectile_0 : public AActor
+class AREA_CONTROLL_API AProjectile_0 : public AProjectile
 {
 	GENERATED_BODY()
 	
@@ -25,6 +25,7 @@ public:
 	AProjectile_0();
 
 	virtual void Tick(float DeltaTime) override;
+
 
 protected:
 
@@ -42,12 +43,14 @@ protected:
 	UPROPERTY() FTimerHandle Timer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float InitSpeed;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Damage;
+	UPROPERTY() float Damage;
 
 	UPROPERTY() ABoom* BoomActor;
 
 	UFUNCTION()
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	
 
 };

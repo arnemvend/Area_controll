@@ -8,7 +8,6 @@
 
 class USpringArmComponent;
 class UCameraComponent;
-//class UFloatingPawnMovement;
 class UInputComponent;
 
 
@@ -39,8 +38,6 @@ protected:
 
 	//"Declare components"-------------------------------------------------------------------------------------->
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") USpringArmComponent* GamerSpringArm;
-	
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") UFloatingPawnMovement* GamerPawnMovement;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components") UCameraComponent* GamerCamera;
 
@@ -49,6 +46,7 @@ protected:
 	//"Declare variables for moving this Pawn"------------------------------------------------------------------->
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float SpeedCameraMove;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float SpeedCameraScreen;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float SpeedCameraZoom;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float LenghtMax;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float LenghtMin;

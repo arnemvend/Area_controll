@@ -6,6 +6,7 @@
 #include "NiagaraComponent.h"
 #include "Boom.h"
 #include "Components/SphereComponent.h"
+#include "Core/AreaControll_GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -84,10 +85,9 @@ AProjectile_1::AProjectile_1()
 	ProjectileMovement->InitialSpeed = 150.0f;
 	ProjectileMovement->ProjectileGravityScale = 0.0f;
 
-
-	Damage = 10.0f;
-	Splash = 25.0f;
 	CanBoom = false;
+
+	Step = 0;
 
 
 	Sphere0->OnComponentBeginOverlap.AddDynamic(this, &AProjectile_1::OnOverlapBegin0);
@@ -95,6 +95,7 @@ AProjectile_1::AProjectile_1()
 	Sphere2->OnComponentBeginOverlap.AddDynamic(this, &AProjectile_1::OnOverlapBegin2);
 	Sphere3->OnComponentBeginOverlap.AddDynamic(this, &AProjectile_1::OnOverlapBegin3);
 	Sphere3->OnComponentBeginOverlap.AddDynamic(this, &AProjectile_1::OnOverlapBegin4);
+
 
 	SphereArr.Add(Sphere0);
 	SphereArr.Add(Sphere1);
@@ -131,28 +132,14 @@ void AProjectile_1::PostReact(USphereComponent* Sphere, UNiagaraComponent* Niaga
 
 
 
-
-
-
-
-
-
 void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, USphereComponent* Sphere,
-	UNiagaraComponent* Niagara, FVector Loc)
+                          UNiagaraComponent* Niagara, FVector Loc)
 {
-	if ((OtherComp->ComponentHasTag(TEXT("Internal")) || OtherComp->ComponentHasTag(TEXT("InternalEnemy"))) 
-		&& IsValid(OtherActor))
-	{
-		//logic of damage
-		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
-		//spown Boom and destroy component
-		BoomActor->CreateBoomFunc(Loc, FRotator::ZeroRotator, BoomActor->Proj1BoomSystem[1], FColor::White);
-		PostReact(Sphere, Niagara, Loc);
-	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		BoomActor->CreateBoomFunc(Loc, FRotator::ZeroRotator, BoomActor->Proj1BoomSystem[0], FColor::White);
 		PostReact(Sphere, Niagara, Loc);
+		return;
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
@@ -168,6 +155,31 @@ void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, US
 		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), Location);
 		BoomActor->CreateBoomFunc(Location, SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
 		PostReact(Sphere, Niagara, Location);
+		return;
+	}
+	if (EnemyNames.Num() > 0)
+	{
+		for (int i = 0; i < EnemyNames.Num(); i++)
+		{
+			if (IsValid(OtherComp) && OtherComp->ComponentHasTag(EnemyNames[i]))
+			{
+				FVector Location;
+				if (CanBoom)
+				{
+					Location = Loc;
+				}
+				else
+				{
+					Location = Sphere->GetComponentLocation();
+				}
+				//logic of damage
+				UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
+				//spown Boom and destroy component
+				BoomActor->CreateBoomFunc(Location, FRotator::ZeroRotator, BoomActor->Proj1BoomSystem[1], FColor::White);
+				PostReact(Sphere, Niagara, Location);
+				return;
+			}
+		}
 	}
 }
 
@@ -213,18 +225,19 @@ void AProjectile_1::OnOverlapBegin4(UPrimitiveComponent* OverlappedComp, AActor*
 
 
 
-
-
-
-
-
 // Called when the game starts or when spawned
 void AProjectile_1::BeginPlay()
 {
 	Super::BeginPlay();
 
 	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
-
+	UAreaControll_GameInstance* GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
+	if (IsValid(GInstance))
+	{
+		Damage = GInstance->G1_Damage;
+		Splash = GInstance->G1_Splash;
+	}
+	GInstance = nullptr;
 	FRotator Rot = FRotator::ZeroRotator;
 	//set rotation for every spheres
 	for (int i = 0; i < SphereArr.Num(); i++)
@@ -245,6 +258,11 @@ void AProjectile_1::BeginPlay()
 		//timer for the movement of spheres
 		GetWorldTimerManager().SetTimer(Timer1, [this]()
 	    {
+			if (Step >= 6)
+			{
+				Destroy();
+			}
+			Step++;
 		    for (int i = 0; i < SphereArr.Num(); i++)
 		    {
 				if (SphereArr.Num() > 0)
@@ -273,12 +291,15 @@ void AProjectile_1::Tick(float DeltaTime)
 
 }
 
+
+
+
 void AProjectile_1::Destroyed()
 {
-	Super::Destroyed();
-
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
+
+	Super::Destroyed();
 }
 
 

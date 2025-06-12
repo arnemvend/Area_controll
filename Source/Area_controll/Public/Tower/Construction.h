@@ -12,6 +12,7 @@ class UMaterialInterface;
 class UStaticMesh;
 class UCapsuleComponent;
 class ATower;
+class UAreaControll_GameInstance;
 class UNiagaraComponent;
 class UNiagaraSystem;
 
@@ -28,10 +29,7 @@ public:
 	AConstruction();
 
 
-	virtual void Tick(float DeltaTime) override;
-
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Variables") FColor Color;
+	UPROPERTY() FColor Color;
 
 	UFUNCTION() void ColorFunc();
 
@@ -57,15 +55,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInstanceDynamic* DTowMaterial;
 
 	UPROPERTY() ATower* Tower;
+	UPROPERTY() UAreaControll_GameInstance* GInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* Niagara;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* NiagaraBr;
 	UPROPERTY() UNiagaraSystem* NiagaraSystem;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Health;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Max;
+	UPROPERTY() float Health;
+	UPROPERTY() float Max;
 	UPROPERTY() float Health_P;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Step;
+	UPROPERTY() float Step;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ATower> Spowned;
@@ -80,7 +79,5 @@ protected:
 	
 	UFUNCTION() void AddHealthFunc();
 	UFUNCTION() void HappyEnd();
-
-	
-
+	UFUNCTION() void OnNiagaraSystemFinished(UNiagaraComponent* NiagaraComponent);
 };

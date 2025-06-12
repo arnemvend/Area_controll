@@ -19,7 +19,7 @@ class UChildActorComponent;
 class USplineComponent;
 class UNiagaraSystem;
 class ABoom;
-class APreloadActor;
+
 
 
 
@@ -34,8 +34,11 @@ public:
 	AWild();
 	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) UBoxComponent* Box;
+
 	UPROPERTY() FVector AimCoord;
-	UPROPERTY() int Type;
+	UPROPERTY() FColor Color;
+
 
 	UFUNCTION() void Start();
 
@@ -53,7 +56,6 @@ protected:
 
 	UPROPERTY() UMaterialInstanceDynamic* DMeshMaterial;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) UBoxComponent* Box;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) UBoxComponent* Nose;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) UChildActorComponent* Gun;
@@ -74,8 +76,6 @@ protected:
 	UPROPERTY() UNiagaraSystem* NiagaraSystem;
 
 	UPROPERTY() ABoom* BoomActor;
-	UPROPERTY() APreloadActor* PActor;
-
 	
 	UPROPERTY() FVector CurrentCoord;
 	UPROPERTY() FVector CurrentScaleShMesh;
@@ -85,8 +85,7 @@ protected:
 	UPROPERTY() float Health;
 	UPROPERTY() float MaxHealth;
 	UPROPERTY() FRotator CurrentRotation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn") TSubclassOf<ABoom> Spowned;
+	UPROPERTY() bool CanDamage;
 
 
 	
@@ -95,7 +94,7 @@ protected:
 	UFUNCTION() void MoveFunc(float Amount);
 	UFUNCTION() void HighFunc(float Amount);
 	UFUNCTION() void FinishFunc();
-	UFUNCTION() void DestroyFunc();
+	UFUNCTION() virtual void DestroyFunc();
 
 	UFUNCTION()
 	void OnBoxOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
@@ -106,4 +105,6 @@ protected:
 	UFUNCTION()
 	void OnNoseOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	UFUNCTION() void OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+		AController* InstigatedBy, AActor* DamageCauser);
 };

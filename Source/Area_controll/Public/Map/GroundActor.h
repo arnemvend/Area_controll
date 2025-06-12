@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Interfaces/GameWidgetInterface.h"
 #include "GroundActor.generated.h"
 
 class UStaticMeshComponent;
@@ -13,7 +14,7 @@ class UBoxComponent;
 
 
 UCLASS()
-class AREA_CONTROLL_API AGroundActor : public AActor
+class AREA_CONTROLL_API AGroundActor : public AActor, public IGameWidgetInterface
 {
 	GENERATED_BODY()
 	
@@ -23,8 +24,8 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-
-
+	virtual FOnDeTouchDelegate& GetOnDeTouchDelegate() override;
+	virtual FOnShieldDelegate& GetOnShieldDelegate() override;
 
 
 protected:
@@ -39,4 +40,6 @@ protected:
 
 	UFUNCTION() void Touch(ETouchIndex::Type FingerIndex, AActor* TouchedActor);
 
+	UPROPERTY() FOnDeTouchDelegate OnDeTouchDelegate;
+	UPROPERTY() FOnShieldDelegate OnShieldDelegate;
 };

@@ -10,7 +10,10 @@
 
 class ABoom;
 class AMainTower;
-class APreloadActor;
+class UChildActorComponent;
+class UAreaControll_GameInstance;
+class AAreaControll_GameMode;
+class AAreaControll_PlayerController;
 class UStaticMeshComponent;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
@@ -21,6 +24,8 @@ class UNiagaraSystem;
 class UTimelineComponent;
 class UCurveFloat;
 class UTowerWidget;
+class UGameWidget;
+
 
 
 UCLASS()
@@ -33,16 +38,16 @@ public:
 	ATower();
 
 
-	virtual void Tick(float DeltaTime) override;
-
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UStaticMeshComponent* SphereShieldMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI") UTowerWidget* TW;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Guns") UChildActorComponent* UpGun;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Guns") UChildActorComponent* MidGun;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Guns") UChildActorComponent* LowGun;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float Health;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float MaxHealth;
+	UPROPERTY() float Health;
+	UPROPERTY() float MaxHealth;
 	UPROPERTY() float CurrentEmissive;
 
 	UPROPERTY() int Wave;
@@ -53,18 +58,26 @@ public:
 	UPROPERTY() bool IsClicked;
 
 
+	
 
 
+
+
+
+	UFUNCTION() void ShieldCreate();
 	UFUNCTION() void Start(bool IsYour);
 	UFUNCTION() void SetDamageFunc();
-	UFUNCTION() void ShieldCreate();
-	UFUNCTION() void TowerDestroy();
+	UFUNCTION() void RunDelete();
+	UFUNCTION() void DeTouch(int Value);
+
+	UFUNCTION() void CreateGun(int Type, int Number);
+	UFUNCTION() void DeleteGun(int Type);
 
 	//"Logical functions for network search"---------------------------------------------------------------------------->
 	UFUNCTION() void NetOff();
 	UFUNCTION() void ReEnter(FName AName);
 	UFUNCTION() void Repeater();
-	UFUNCTION() void DeTouch();
+	
 	
 
 
@@ -82,14 +95,14 @@ protected:
 	UPROPERTY() UStaticMesh* MyStaticMesh;
 	
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") UCapsuleComponent* TriggerCapsuleInternal;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") UCapsuleComponent* TriggerCapsuleExternal;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Trigger") UCapsuleComponent* CollisionEnergy;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger") UCapsuleComponent* TriggerCapsuleInternal;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger") UCapsuleComponent* TriggerCapsuleExternal;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger") UCapsuleComponent* CollisionEnergy;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInterface* TowMaterial;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInterface* DiskMaterial;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInterface* PartShieldMaterial;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UMaterialInterface* SphereShieldMaterial;
+	UPROPERTY() UMaterialInterface* TowMaterial;
+	UPROPERTY() UMaterialInterface* DiskMaterial;
+	UPROPERTY() UMaterialInterface* PartShieldMaterial;
+	UPROPERTY() UMaterialInterface* SphereShieldMaterial;
 
 	UPROPERTY() UMaterialInstanceDynamic* DTowMaterial;
 	UPROPERTY() UMaterialInstanceDynamic* DDiskMaterial;
@@ -97,7 +110,7 @@ protected:
 	UPROPERTY() UMaterialInstanceDynamic* DSphereShieldMaterial;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* NiagaraNet;
-	UPROPERTY() UNiagaraComponent* NiagaraRepeater;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara") UNiagaraComponent* NiagaraRepeater;
 	UPROPERTY() UNiagaraSystem* NiagaraNetSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timeline") UTimelineComponent* ShieldTimeLine;
@@ -108,22 +121,25 @@ protected:
 	UPROPERTY() FOnTimelineEvent TLFinish;
 
 	UPROPERTY() ABoom* BoomActor;
-	UPROPERTY() APreloadActor* PActor;
+	UPROPERTY() UAreaControll_GameInstance* GInstance;
+	UPROPERTY() AAreaControll_GameMode* GMode;
+	UPROPERTY() AAreaControll_PlayerController* PController;
 
 
 
 	//"Other variables"----------------------------------------------------------------------------------------->
 	
 	UPROPERTY() bool CanDie;
+	UPROPERTY() bool CanDamage;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Variables") int MaxWave;
-	UPROPERTY() int NotNet;
+	UPROPERTY() int MaxWave;
+	UPROPERTY() int EnergyLoss;
 
 	UPROPERTY() float Influence;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float BoomDuration;
+	UPROPERTY() float Repear;
+	UPROPERTY() int EnergyRepear;
 
 	UPROPERTY() TArray<ATower*> StepTowers;
-	UPROPERTY() TArray<ATower*> NextTowers;
 	UPROPERTY() TArray<ATower*> PSNearestTowers;
 	UPROPERTY() TArray<ATower*> ChildTowers;
 
@@ -137,13 +153,18 @@ protected:
 	UPROPERTY() FName NameMain;
 	UPROPERTY() FName NameMainEnemy;
 
+	UPROPERTY() FColor MyColor;
+
+	UPROPERTY() FTimerHandle Timer010;
+	UPROPERTY() FTimerHandle Timer011;
+	UPROPERTY() FTimerHandle Timer012;
 	UPROPERTY() FTimerHandle Timer0;
-	//UPROPERTY() FTimerHandle Timer1;
+	UPROPERTY() FTimerHandle Timer1;
 	UPROPERTY() FTimerHandle Timer2;
 	UPROPERTY() FTimerHandle Timer3;
-	UPROPERTY() FTimerHandle Timer4;
 
-	UPROPERTY() FColor MyColor;
+
+
 
 
 	UFUNCTION() void OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, 
@@ -156,6 +177,8 @@ protected:
 	UFUNCTION() void ColorsFunc(FColor Color);
 	UFUNCTION() void CheckStep(int MWave);
 	UFUNCTION() void SetParam();
+	UFUNCTION() void TowerDestroy();
+	UFUNCTION() void TowerDelete();
 	
 
 
@@ -173,9 +196,11 @@ protected:
 	UFUNCTION() void ShieldOn();
 	UFUNCTION() void PartShieldProcessOff();
 	UFUNCTION() void PartCommandFunc(bool Up);
-	
+	UFUNCTION() void CanFire(bool CanFire, bool bNeedStop, bool bNeedStart);
+
 	UFUNCTION() void AmountFunc(float Value);
 	UFUNCTION() void ShieldProcessOff();
 	UFUNCTION() void ScaleFunc(UStaticMeshComponent* Mesh);
+	UFUNCTION() void CheckShieldansRun(bool IsPlayer, bool ShieldIsOn);
 	
 };

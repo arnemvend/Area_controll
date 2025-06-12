@@ -45,7 +45,7 @@ void APlayer_HUD::BeginPlay()
         }
         TWidget = nullptr;
         Main = nullptr;
-        MTowers.Empty();
+        MTowers.Empty(0);
     }
 
 }

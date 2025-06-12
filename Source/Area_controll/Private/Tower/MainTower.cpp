@@ -4,12 +4,17 @@
 #include "Tower/MainTower.h"
 #include "NiagaraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Core/AreaControll_GameInstance.h"
+#include "Core/AreaControll_GameMode.h"
 #include "Kismet/GameplayStatics.h"
 
 
-
-
-
+AMainTower::AMainTower()
+{
+	UpGun->DestroyComponent();
+	MidGun->DestroyComponent();
+	LowGun->DestroyComponent();
+}
 
 
 
@@ -43,7 +48,7 @@ void AMainTower::CheckNew(ATower* Tower)
 //"Calculation energy pool"------------------------------------------------------------------------------------->
 void AMainTower::CheckEnergy()
 {
-	GetWorldTimerManager().SetTimer(Timer0, [this]()
+	GetWorldTimerManager().SetTimer(Timer010, [this]()
 		{
 			MassEnergy = 0;
 			FVector RunCheck = FVector(LeftBorder - CollisionEnergy->GetScaledCapsuleRadius(),
@@ -60,11 +65,12 @@ void AMainTower::CheckEnergy()
 					FHitResult HitResult;
 					ECollisionChannel TraceChannel = ECC_Camera;
 					FCollisionQueryParams TraceParams;
-					if ([[maybe_unused]] bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, RunCheck, End, TraceChannel, TraceParams))
+					if ([[maybe_unused]] bool bHit = GetWorld()->LineTraceSingleByChannel
+					    (HitResult, RunCheck, End, TraceChannel, TraceParams))
 					{
 						if (HitResult.Location.Z > 0 && HitResult.Component->ComponentHasTag(Name))
 						{
-							MassEnergy = MassEnergy + EnergyPoint;
+							MassEnergy += EnergyPoint;
 							//DrawDebugLine(GetWorld(), RunCheck, HitResult.ImpactPoint, FColor::Green, false, 2.0f, 0, 1.0f);
 							//DrawDebugPoint(GetWorld(), HitResult.ImpactPoint, 10.0f, FColor::Red, false, 2.0f);
 						}
@@ -74,7 +80,6 @@ void AMainTower::CheckEnergy()
 				RunCheck.Y = UpBorder + CollisionEnergy->GetScaledCapsuleHalfHeight();
 				RunCheck.X = RunCheck.X + EnergyStep;
 			}
-			//UE_LOG(LogTemp, Warning, TEXT("%d"), MassEnergy);
 		}, 0.5f, false);
 }
 
@@ -102,7 +107,7 @@ void AMainTower::ReloadEnergy(FName DName)
 				DTower = Cast<ATower>(ActorsOfClass[i]);
 			}
 
-			if (DTower && DTower != this)
+			if (IsValid(DTower) && DTower != this)
 			{
 				CheckNew(DTower);
 			}
@@ -118,65 +123,48 @@ void AMainTower::ReloadEnergy(FName DName)
 //"Main starts finder's operations"----------------------------------------------------------------------------->
 void AMainTower::MainFinder(ATower* TTower)
 {
+	//set array for towers deactivate them
+	TArray<ATower*> ActorsOfThisClass = GMode->PlayerTowers;
+	ActorsOfThisClass += GMode->EnemyTowers;
 
-	//GetWorldTimerManager().SetTimer(Timer1, [this, TTower]()
-	//{
-			TArray<AActor*> ActorsOfThisClass;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATower::StaticClass(), ActorsOfThisClass);
-			//set array for towers deactivate them
-			ATower* PoofTower{};
-			if (ActorsOfThisClass.Num() > 0)
+	if (ActorsOfThisClass.Num() > 0)
+	{
+		for (int i = 0; i < ActorsOfThisClass.Num(); i++)
+		{
+			if (IsValid(ActorsOfThisClass[i]) && IsValid(TTower) && ActorsOfThisClass[i]->ActorHasTag(Name)
+				&& Main != ActorsOfThisClass[i] && MainEnemy != ActorsOfThisClass[i]
+				&& ActorsOfThisClass[i]->AdressTower.Num() > TTower->AdressTower.Num())
 			{
-				for (int i = 0; i < ActorsOfThisClass.Num(); i++)
+				if (ActorsOfThisClass[i]->AdressTower[TTower->Wave] == TTower->AdressTower.Last())
 				{
-					if (ActorsOfThisClass[i])
-					{
-						PoofTower = Cast<ATower>(ActorsOfThisClass[i]);
-					}
-
-					if (PoofTower && TTower && PoofTower->ActorHasTag(Name) && Main != PoofTower && MainEnemy != PoofTower
-						&& PoofTower->AdressTower.Num() > TTower->AdressTower.Num())
-					{
-						if (PoofTower->AdressTower[TTower->Wave] == TTower->AdressTower.Last())
-						{
-							PoofTower->NetOff();
-						}
-					}
+					ActorsOfThisClass[i]->NetOff();
 				}
 			}
-			PoofTower = nullptr;
-			if (TTower)
-			{
-				TTower->NetOff();
-				TTower->Destroy();
-				CheckEnergy();
-			}
-
-			NotNet = 0;
-			ReFinder(Name);//search on
-			
-
-	//}, 0.01f, false);
-
-	GetWorldTimerManager().SetTimer(Timer2, [this]()
+		}
+	}
+	ActorsOfThisClass.Empty(0);
+	if (IsValid(TTower))
 	{
-			if (NextTowers.Num() > 0)
+		TTower->NetOff();
+		GMode->DisabledTowers.RemoveSwap(TTower);
+		TTower->Destroy();
+		CheckEnergy();
+	}
+
+	NotNet = 0;
+	ReFinder(Name);//search on
+
+	GetWorldTimerManager().SetTimer(Timer011, [this]()
+	{
+			if (GMode->DisabledTowers.Num() > 0)
 			{
-				for (int i = 0; i < NextTowers.Num(); i++)
+				if (Main == this)
 				{
-					if (NextTowers[i])
-					{
-						if (Main == this)
-						{
-							ATower* Tow = NextTowers[i];
-							Tow->ReEnter(MainEnemy->Name);
-						}
-						if (MainEnemy == this)
-						{
-							ATower* Tow = NextTowers[i];
-							Tow->ReEnter(Main->Name);
-						}
-					}
+					MainEnemy->ReFinder(MainEnemy->Name);
+				}
+				if (MainEnemy == this)
+				{
+					Main->ReFinder(Main->Name);
 				}
 			}
 	}, 0.1f, false);
@@ -186,38 +174,17 @@ void AMainTower::MainFinder(ATower* TTower)
 //"Finder's operations"----------------------------------------------------------------------------->
 void AMainTower::ReFinder(FName BName)
 {
-	NextTowers.Empty();
-	TArray<AActor*> OfThisClass;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATower::StaticClass(), OfThisClass);
-	ATower* RSTower{};
-	if (OfThisClass.Num() > 0)
-	{
-		for (int i = 0; i < OfThisClass.Num(); i++)
-		{
-			if (OfThisClass[i])
-			{
-				RSTower = Cast<ATower>(OfThisClass[i]);
-			}
-			if (RSTower && RSTower->Tags.Num() == 0 && Main != RSTower && MainEnemy != RSTower)
-			{
-				NextTowers.AddUnique(RSTower);
-			}
-		}
-	}
-	RSTower = nullptr;
 	//the search will stop when the number of disabled towers stops changing
-	if(NextTowers.Num() != NotNet)
+	if(GMode->DisabledTowers.Num() != NotNet)
 	{
-		NotNet = NextTowers.Num();
-		for( int i = 0; i < NextTowers.Num(); i++)
+		NotNet = GMode->DisabledTowers.Num();
+		for( int i = 0; i < GMode->DisabledTowers.Num(); i++)
 		{
-			if(NextTowers[i])
+			if(IsValid(GMode->DisabledTowers[i]))
 			{
-				ATower* Tow = NextTowers[i];
-				Tow->ReEnter(BName);
+				GMode->DisabledTowers[i]->ReEnter(BName);
 			}
 		}
-		NextTowers.Empty();
 		ReFinder(BName);
 	}
 	Main->CheckEnergy();
@@ -234,9 +201,19 @@ void AMainTower::NetStart(FColor Color)
 }
 
 
+
+
 void AMainTower::BeginPlay()
 {
 	Super::BeginPlay();
+
+	MaxEnergy = GInstance->MTr_MaxEnergy;
+	MaxHealth = GInstance->MTr_MaxHealth;
+	Health = MaxHealth;
+	EnergyPoint = GInstance->MTr_EnergyPoint;
+	EnergyStep = GInstance->MTr_EnergyStep;
+
+	CanDamage = true;
 
 	Influence = TriggerCapsuleInternal->GetScaledCapsuleRadius() + TriggerCapsuleExternal->GetScaledCapsuleRadius() + 10.0f;
 
@@ -246,8 +223,62 @@ void AMainTower::BeginPlay()
 	DPartShieldMaterial = PartShieldMesh->CreateDynamicMaterialInstance(0, PartShieldMaterial);
 	DSphereShieldMaterial = SphereShieldMesh->CreateDynamicMaterialInstance(0, SphereShieldMaterial);
 
-	IsMainFunc(true);
+	UpBorder = GetActorLocation().Y;
+	DownBorder = GetActorLocation().Y;
+	RightBorder = GetActorLocation().X;
+	LeftBorder = GetActorLocation().X;
+	AdressTower.Add(0);
 
 	ScaleFunc(SphereShieldMesh);
 	ScaleFunc(PartShieldMesh);
+
+	if (ActorHasTag(TEXT("Main")))
+	{
+		MyColor = GInstance->YourColor;
+		GMode->PlayerTowers.AddUnique(this);
+		GMode->PlayerMaxEnergy = MaxEnergy;
+	}
+	if (ActorHasTag(TEXT("MainEnemy")))
+	{
+		MyColor = GInstance->EnemyColor;
+		GMode->EnemyTowers.AddUnique(this);
+		GMode->EnemyMaxEnergy = MaxEnergy;
+	}
+	ColorsFunc(MyColor);
+	GMode->DisabledTowers.RemoveSwap(this);
+
+	TArray<AActor*> TowerArr;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AMainTower::StaticClass(), TowerArr);
+	AMainTower* Tower;
+	if (TowerArr.Num() > 0)
+	{
+		for (int i = 0; i < TowerArr.Num(); i++)
+		{
+			Tower = Cast<AMainTower>(TowerArr[i]);
+			if (Tower->ActorHasTag(TEXT("Main")))
+			{
+				Main = Tower;
+			}
+			if (Tower->ActorHasTag(TEXT("MainEnemy")))
+			{
+				MainEnemy = Tower;
+			}
+		}
+	}
+	TowerArr.Empty(0);
+	Tower = nullptr;
+
+	CheckEnergy();
+
+	GetWorldTimerManager().SetTimer(Timer012, [this]()
+		{
+			if (ActorHasTag(TEXT("Main")))
+			{
+				GMode->PlayerEnergy = FMath::Min(GMode->PlayerEnergy + MassEnergy, GMode->PlayerMaxEnergy);
+			}
+			if (ActorHasTag(TEXT("MainEnemy")))
+			{
+				GMode->EnemyEnergy = FMath::Min(GMode->EnemyEnergy + MassEnergy, GMode->EnemyMaxEnergy);
+			}
+		}, 2.0f, true);
 }
