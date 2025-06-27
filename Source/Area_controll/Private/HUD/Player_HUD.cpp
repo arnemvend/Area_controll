@@ -16,12 +16,14 @@ void APlayer_HUD::BeginPlay()
     //GameWidget create
     if (WidgetClass)
     {
-        UGameWidget* Widget = CreateWidget<UGameWidget>(GetWorld(), WidgetClass);
-        if (Widget)
+        if (!IsValid(GameWidget))
         {
-            Widget->AddToViewport();
+            GameWidget = CreateWidget<UGameWidget>(GetWorld(), WidgetClass);
         }
-        Widget = nullptr;
+        if (IsValid(GameWidget))
+        {
+            GameWidget->AddToViewport();
+        }
     }
 
     //TowerWidget create
@@ -32,12 +34,12 @@ void APlayer_HUD::BeginPlay()
         AMainTower* Main;
         TArray<AActor*> MTowers;
         UGameplayStatics::GetAllActorsOfClass(GetWorld(), AMainTower::StaticClass(), MTowers);
-        if (MTowers.Num() != 0 && TWidget)
+        if (MTowers.Num() != 0 && IsValid(TWidget))
         {
 	        for (int i = 0; i < MTowers.Num(); i++)
 	        {
                 Main = Cast<AMainTower>(MTowers[i]);
-                if (Main->ActorHasTag(TEXT("Main")))
+                if (IsValid(Main) && Main->ActorHasTag(TEXT("Main")))
                 {
                     Main->TW = TWidget;
                 }

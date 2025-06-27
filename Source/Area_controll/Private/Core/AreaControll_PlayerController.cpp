@@ -44,6 +44,15 @@ void AAreaControll_PlayerController::FindReferences()
 
 
 
+void AAreaControll_PlayerController::OnQuitRelease()
+{
+	ConsoleCommand("quit");
+}
+
+
+
+
+
 //debug function for editor
 void AAreaControll_PlayerController::OnMouseWheelAxis(float Value)
 {
@@ -284,6 +293,7 @@ void AAreaControll_PlayerController::SetupInputComponent()
 	
 	InputComponent->BindAction("Pinch", IE_Pressed, this, &AAreaControll_PlayerController::OnPinchPress);
 	InputComponent->BindAction("Pinch", IE_Released, this, &AAreaControll_PlayerController::OnPinchReleas);
+	InputComponent->BindAction("Quit", IE_Released, this, &AAreaControll_PlayerController::OnQuitRelease);
 
 	InputComponent->BindTouch(IE_Pressed, this, &AAreaControll_PlayerController::OnTouchPress);
 	InputComponent->BindTouch(IE_Released, this, &AAreaControll_PlayerController::OnTouchReleas);

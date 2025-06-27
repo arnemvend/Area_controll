@@ -26,6 +26,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	UPROPERTY() UGameWidget* GameWidget;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI") TSubclassOf<UGameWidget> WidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI") TSubclassOf<UTowerWidget> TWidgetClass;

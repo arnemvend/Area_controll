@@ -57,6 +57,18 @@
 		{
 			"Name": "N10XSourceCodeAccess",
 			"Enabled": false
+		},
+		{
+			"Name": "Fab",
+			"Enabled": false
+		},
+		{
+			"Name": "NiagaraUIRenderer",
+			"Enabled": true,
+			"SupportedTargetPlatforms": [
+				"Win64",
+				"Android"
+			]
 		}
 	],
 	"TargetPlatforms": [

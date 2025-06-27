@@ -20,9 +20,9 @@ public:
 
 	AAreaControll_GameMode();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TArray<ATower*> PlayerTowers;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TArray<ATower*> EnemyTowers;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TArray<ATower*> DisabledTowers;
+	UPROPERTY() TArray<ATower*> PlayerTowers;
+	UPROPERTY() TArray<ATower*> EnemyTowers;
+	UPROPERTY() TArray<ATower*> DisabledTowers;
 
 	UPROPERTY() int PlayerEnergy;
 	UPROPERTY() int EnemyEnergy;

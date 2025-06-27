@@ -40,7 +40,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UStaticMeshComponent* SphereShieldMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI") UTowerWidget* TW;
+	UPROPERTY() UTowerWidget* TW;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Guns") UChildActorComponent* UpGun;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Guns") UChildActorComponent* MidGun;

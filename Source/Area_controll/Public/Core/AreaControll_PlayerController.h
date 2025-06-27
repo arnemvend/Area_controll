@@ -76,6 +76,8 @@ protected:
 	UFUNCTION() void OnPinchPress();
 	UFUNCTION() void OnPinchReleas();
 
+	UFUNCTION() void OnQuitRelease();
+
 	UFUNCTION() void OnTouchPress(const ETouchIndex::Type FingerIndex, const FVector Loc);
 	UFUNCTION() void OnTouchReleas(const ETouchIndex::Type FingerIndex, const FVector Loc);
 	UFUNCTION() void OnTouchMove(const ETouchIndex::Type FingerIndex, const FVector Loc);

@@ -48,13 +48,15 @@ List of updates:
 
 
 
+---
+UPD
+---
+List of updates:
+- Created a prototype of the main menu.
+- Added the ability to exit the game.
 
-
-
-
-
-
-
-
-
-
+---
+<div>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/07_AC.jpg" height="350"/>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/08_AC.jpg" height="350"/>
+</div>
