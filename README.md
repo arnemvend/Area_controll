@@ -60,3 +60,11 @@ List of updates:
 <img src="https://github.com/arnemvend/arnemvend/blob/main/images/07_AC.jpg" height="350"/>
 <img src="https://github.com/arnemvend/arnemvend/blob/main/images/08_AC.jpg" height="350"/>
 </div>
+
+
+
+---
+UPD
+---
+List of updates:
+- Settings menu added (interface only, features are currently disabled).
