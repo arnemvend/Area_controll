@@ -69,6 +69,10 @@
 				"Win64",
 				"Android"
 			]
+		},
+		{
+			"Name": "BlueprintMaterialTextureNodes",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

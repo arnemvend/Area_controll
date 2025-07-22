@@ -31,13 +31,19 @@ void UGameWidget::Button_TowerPress()
 {
 	DeactivatedTowerMenu();
 	//waiting for BuildCreator to appear
-	P_Controller->CreatorIsHere = true;
+	if (IsValid(P_Controller))
+	{
+		P_Controller->CreatorIsHere = true;
+	}
 }
 
 
 void UGameWidget::Button_TowerReleas()
 {
-	P_Controller->SpownCreatorFunc();
+	if (IsValid(P_Controller))
+	{
+		P_Controller->SpownCreatorFunc();
+	}
 }
 
 

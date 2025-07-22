@@ -29,7 +29,7 @@ void APlayer_HUD::BeginPlay()
     //TowerWidget create
     if (TWidgetClass)
     {
-	    UTowerWidget* TWidget = CreateWidget<UTowerWidget>(GetWorld(), TWidgetClass);
+	    TWidget = CreateWidget<UTowerWidget>(GetWorld(), TWidgetClass);
         //the object has not been added to the screen, the link is passed to the MainTower
         AMainTower* Main;
         TArray<AActor*> MTowers;
@@ -45,7 +45,6 @@ void APlayer_HUD::BeginPlay()
                 }
 	        }
         }
-        TWidget = nullptr;
         Main = nullptr;
         MTowers.Empty(0);
     }

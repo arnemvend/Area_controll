@@ -18,6 +18,8 @@ class AREA_CONTROLL_API AMainMenu_GameMode : public AGameModeBase
 
 public:
 
+	UFUNCTION() void SetSettings(int Type);
+
 protected:
 
 	virtual void BeginPlay() override;

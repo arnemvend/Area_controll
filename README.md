@@ -68,3 +68,22 @@ UPD
 ---
 List of updates:
 - Settings menu added (interface only, features are currently disabled).
+
+
+
+---
+UPD
+---
+List of updates:
+- Changed the interface style
+- Added interface animations
+- Added the ability to adjust graphics settings
+- Added mute buttons (currently non-functional as the game has no sound)
+- Added an app exit menu (currently only from the main menu)
+
+---
+<div>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/09_AC.jpg" height="350"/>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/10_AC.jpg" height="350"/>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/11_AC.jpg" height="350"/>
+</div>

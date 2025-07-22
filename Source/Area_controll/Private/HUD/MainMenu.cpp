@@ -5,76 +5,94 @@
 
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/Slider.h"
 #include "Components/TextBlock.h"
+#include "NiagaraSystemWidget.h"
+#include "NiagaraUIComponent.h"
+#include "Animation/WidgetAnimation.h" 
+#include "Components/CheckBox.h"
+#include "Components/VerticalBox.h"
+#include "Core/MainMenu_GameMode.h"
 #include "Core/MainMenu_PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameUserSettings.h"
+
+
+
+
+UMainMenu::UMainMenu(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	MainMenuAnimSpeed = 1.0f;
+	SettingsAnimSpeed = 1.0f;
+	QuitAnimSpeed = 1.0f;
+	QuitTextScale = FVector2D(1.3f, 1.3f);
+}
 
 
 bool UMainMenu::Initialize()
 {
 	Super::Initialize();
 
-	TextPlayOffset = 7.0f;
-	TextSettingsOffset = 6.0f;
-	TextExitOffset = 5.0f;
-
 	FButtonStyle NewStyle = Button_Start->GetStyle();
 	NewStyle.Hovered = NewStyle.Normal;
+	NewStyle.Disabled = NewStyle.Normal;
 	Button_Start->SetStyle(NewStyle);
-	Button_Start->OnPressed.AddDynamic(this, &UMainMenu::Button_StartPress);
-	Button_Start->OnReleased.AddDynamic(this, &UMainMenu::Button_StartRelease);
 	Button_Start->OnClicked.AddDynamic(this, &UMainMenu::Button_StartClick);
 
 	NewStyle = Button_Exit->GetStyle();
 	NewStyle.Hovered = NewStyle.Normal;
+	NewStyle.Disabled = NewStyle.Normal;
 	Button_Exit->SetStyle(NewStyle);
-	Button_Exit->OnPressed.AddDynamic(this, &UMainMenu::Button_ExitPress);
-	Button_Exit->OnReleased.AddDynamic(this, &UMainMenu::Button_ExitRelease);
 	Button_Exit->OnClicked.AddDynamic(this, &UMainMenu::Button_ExitClick);
 
 	NewStyle = Button_Settings->GetStyle();
 	NewStyle.Hovered = NewStyle.Normal;
+	NewStyle.Disabled = NewStyle.Normal;
 	Button_Settings->SetStyle(NewStyle);
-	Button_Settings->OnPressed.AddDynamic(this, &UMainMenu::Button_SettingsPress);
-	Button_Settings->OnReleased.AddDynamic(this, &UMainMenu::Button_SettingsRelease);
 	Button_Settings->OnClicked.AddDynamic(this, &UMainMenu::Button_SettingsClick);
 
 	NewStyle = Button_Low->GetStyle();
 	NewStyle.Hovered = NewStyle.Normal;
+	NewStyle.Disabled = NewStyle.Pressed;
 	Button_Low->SetStyle(NewStyle);
 	Button_Low->OnPressed.AddDynamic(this, &UMainMenu::Button_LowPress);
 
-	NewStyle = Button_Medium->GetStyle();
-	NewStyle.Hovered = NewStyle.Normal;
-	Button_Medium->SetStyle(NewStyle);
-	Button_Medium->OnPressed.AddDynamic(this, &UMainMenu::Button_MediumPress);
-
 	NewStyle = Button_High->GetStyle();
 	NewStyle.Hovered = NewStyle.Normal;
+	NewStyle.Disabled = NewStyle.Pressed;
 	Button_High->SetStyle(NewStyle);
 	Button_High->OnPressed.AddDynamic(this, &UMainMenu::Button_HighPress);
 
 	NewStyle = Button_ExitSettings->GetStyle();
 	NewStyle.Hovered = NewStyle.Normal;
+	NewStyle.Disabled = NewStyle.Pressed;
 	Button_ExitSettings->SetStyle(NewStyle);
-	Button_ExitSettings->OnPressed.AddDynamic(this, &UMainMenu::Button_ExitSettingsPress);
-	Button_ExitSettings->OnReleased.AddDynamic(this, &UMainMenu::Button_ExitSettingsRelease);
 	Button_ExitSettings->OnClicked.AddDynamic(this, &UMainMenu::Button_ExitSettingsClick);
 
-	NewStyle = Button_Yes->GetStyle();
-	NewStyle.Hovered = NewStyle.Normal;
-	NewStyle.Pressed = NewStyle.Normal;
-	Button_Yes->OnPressed.AddDynamic(this, &UMainMenu::Button_YesPress);
-	Button_Yes->OnReleased.AddDynamic(this, &UMainMenu::Button_YesRelease);
-	Button_Yes->OnClicked.AddDynamic(this, &UMainMenu::Button_YesClick);
+	FCheckBoxStyle CheckBoxStyle = CheckBox_Effects->GetWidgetStyle();
+	CheckBoxStyle.UncheckedHoveredImage = CheckBoxStyle.UncheckedImage;
+	CheckBoxStyle.UncheckedPressedImage = CheckBoxStyle.UncheckedImage;
+	CheckBoxStyle.CheckedHoveredImage = CheckBoxStyle.CheckedImage;
+	CheckBoxStyle.CheckedPressedImage = CheckBoxStyle.CheckedImage;
+	CheckBox_Effects->SetWidgetStyle(CheckBoxStyle);
 
-	NewStyle = Button_No->GetStyle();
-	NewStyle.Hovered = NewStyle.Normal;
-	NewStyle.Pressed = NewStyle.Normal;
-	Button_No->OnPressed.AddDynamic(this, &UMainMenu::Button_NoPress);
-	Button_No->OnReleased.AddDynamic(this, &UMainMenu::Button_NoRelease);
-	Button_No->OnClicked.AddDynamic(this, &UMainMenu::Button_NoClick);
+	CheckBoxStyle = CheckBox_Music->GetWidgetStyle();
+	CheckBoxStyle.UncheckedHoveredImage = CheckBoxStyle.UncheckedImage;
+	CheckBoxStyle.UncheckedPressedImage = CheckBoxStyle.UncheckedImage;
+	CheckBoxStyle.CheckedHoveredImage = CheckBoxStyle.CheckedImage;
+	CheckBoxStyle.CheckedPressedImage = CheckBoxStyle.CheckedImage;
+	CheckBox_Music->SetWidgetStyle(CheckBoxStyle);
 
+	FSliderStyle SliderStyle = Slider_YesNo->GetWidgetStyle();
+	SliderStyle.HoveredBarImage = SliderStyle.NormalBarImage;
+	SliderStyle.DisabledBarImage = SliderStyle.NormalBarImage;
+	SliderStyle.HoveredThumbImage = SliderStyle.NormalThumbImage;
+	SliderStyle.DisabledThumbImage = SliderStyle.NormalThumbImage;
+	Slider_YesNo->SetWidgetStyle(SliderStyle);
+	Slider_YesNo->SetValue(0.5f);
+	Slider_YesNo->OnValueChanged.AddDynamic(this, &UMainMenu::Slider_YesNoProgressChanged);
+	Slider_YesNo->OnMouseCaptureEnd.AddDynamic(this, &UMainMenu::Slider_YesNoMCaptureEnd);
 
 	return true;
 }
@@ -82,226 +100,149 @@ bool UMainMenu::Initialize()
 
 
 
-
 //---------------------------------------------------------------------------//
-void UMainMenu::Button_StartPress()
+void UMainMenu::Finish_ForwardMainMenuAnim()
 {
-	FVector2D Translation = Text_Play->GetRenderTransform().Translation;
-	Translation.Y += TextPlayOffset;
-	Text_Play->SetRenderTranslation(Translation);
+	Button_Start->SetIsEnabled(true);
+	Button_Exit->SetIsEnabled(true);
+	Button_Settings->SetIsEnabled(true);
 }
 
 
-void UMainMenu::Button_StartRelease()
+void UMainMenu::Finish_ReverseMainMenuAnim()
 {
-	FVector2D Translation = Text_Play->GetRenderTransform().Translation;
-	Translation.Y -= TextPlayOffset;
-	Text_Play->SetRenderTranslation(Translation);
-}
+	VerticalBox_Main->SetVisibility(ESlateVisibility::Collapsed);
 
-
-void UMainMenu::Button_StartClick()
-{
-	GetWorld()->GetTimerManager().SetTimer(Timer0, [this]()
-		{
-			UGameplayStatics::OpenLevel(GetWorld(), TEXT("Level1"));
-		}, 0.05f, false);
-}
-
-
-
-
-
-//---------------------------------------------------------------------------//
-void UMainMenu::Button_ExitPress()
-{
-	FVector2D Translation = Text_Exit->GetRenderTransform().Translation;
-	Translation.Y += TextSettingsOffset;
-	Text_Exit->SetRenderTranslation(Translation);
-}
-
-
-void UMainMenu::Button_ExitRelease()
-{
-	FVector2D Translation = Text_Exit->GetRenderTransform().Translation;
-	Translation.Y -= TextSettingsOffset;
-	Text_Exit->SetRenderTranslation(Translation);
-}
-
-
-void UMainMenu::Button_ExitClick()
-{
-	Border_Quit->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	Button_Start->SetVisibility(ESlateVisibility::Hidden);
-	Button_Exit->SetVisibility(ESlateVisibility::Hidden);
-	Button_Settings->SetVisibility(ESlateVisibility::Hidden);
-}
-
-
-
-
-//---------------------------------------------------------------------------//
-void UMainMenu::Button_SettingsPress()
-{
-	FVector2D Translation = Text_Settings->GetRenderTransform().Translation;
-	Translation.Y += TextSettingsOffset;
-	Text_Settings->SetRenderTranslation(Translation);
-}
-
-
-void UMainMenu::Button_SettingsRelease()
-{
-	FVector2D Translation = Text_Settings->GetRenderTransform().Translation;
-	Translation.Y -= TextSettingsOffset;
-	Text_Settings->SetRenderTranslation(Translation);
-}
-
-
-void UMainMenu::Button_SettingsClick()
-{
-	Border_Settings->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	Button_Start->SetVisibility(ESlateVisibility::Hidden);
-	Button_Exit->SetVisibility(ESlateVisibility::Hidden);
-	Button_Settings->SetVisibility(ESlateVisibility::Hidden);
-}
-
-
-
-
-//---------------------------------------------------------------------------//
-void UMainMenu::Button_LowPress()
-{
-	Button_Low->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	FButtonStyle NewStyle = Button_Low->GetStyle();
-	NewStyle.Normal = NewStyle.Pressed;
-	Button_Low->SetStyle(NewStyle);
-	Button_Low->ForceLayoutPrepass();
-
-	FVector2D Translation = Text_Low->GetRenderTransform().Translation;
-	Translation.Y += TextSettingsOffset;
-	Text_Low->SetRenderTranslation(Translation);
-
-	VideoSettingsReClick(Button_Medium, Button_High, Text_Medium, Text_High);
-}
-
-
-void UMainMenu::Button_MediumPress()
-{
-	Button_Medium->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	FButtonStyle NewStyle = Button_Medium->GetStyle();
-	NewStyle.Normal = NewStyle.Pressed;
-	Button_Medium->SetStyle(NewStyle);
-	Button_Medium->ForceLayoutPrepass();
-
-	FVector2D Translation = Text_Medium->GetRenderTransform().Translation;
-	Translation.Y += TextSettingsOffset;
-	Text_Medium->SetRenderTranslation(Translation);
-
-	VideoSettingsReClick(Button_Low, Button_High, Text_Low, Text_High);
-}
-
-
-void UMainMenu::Button_HighPress()
-{
-	Button_High->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	FButtonStyle NewStyle = Button_High->GetStyle();
-	NewStyle.Normal = NewStyle.Pressed;
-	Button_High->SetStyle(NewStyle);
-	Button_High->ForceLayoutPrepass();
-
-	FVector2D Translation = Text_High->GetRenderTransform().Translation;
-	Translation.Y += TextSettingsOffset;
-	Text_High->SetRenderTranslation(Translation);
-
-	VideoSettingsReClick(Button_Low, Button_Medium, Text_Low, Text_Medium);
-}
-
-
-void UMainMenu::VideoSettingsReClick(UButton* Button1, UButton* Button2, UTextBlock* Text1, UTextBlock* Text2)
-{
-	UButton* NewButton = nullptr;
-	UTextBlock* NewText = nullptr;
-
-	if (Button1->GetVisibility() == ESlateVisibility::SelfHitTestInvisible)
+	if (ToSettings)
 	{
-		NewButton = Button1;
-		NewText = Text1;
+		PlayAnimation(SettingsAnim, 0.0f, 1, EUMGSequencePlayMode::Forward, SettingsAnimSpeed);
+		GetWorld()->GetTimerManager().SetTimer(Timer0, [this]()
+			{
+				Border_Settings->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				Button_Low->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				Button_High->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				Button_ExitSettings->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				CheckBox_Effects->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				CheckBox_Music->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			}, 0.01f, false);
 	}
-	else if (Button2->GetVisibility() == ESlateVisibility::SelfHitTestInvisible)
+	else
 	{
-		NewButton = Button2;
-		NewText = Text2;
+		PlayAnimation(QuitAnim, 0.0f, 1, EUMGSequencePlayMode::Forward, QuitAnimSpeed);
+		GetWorld()->GetTimerManager().SetTimer(Timer0, [this]()
+			{
+				Border_Quit->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				NSystemSlider->ActivateSystem(true);
+			}, 0.01f, false);
 	}
-
-	if (!(NewButton || NewText))
-	{
-		return;
-	}
-
-	FButtonStyle NewStyle = NewButton->GetStyle();
-	NewStyle.Normal = NewStyle.Hovered;
-	NewButton->SetStyle(NewStyle);
-	NewButton->ForceLayoutPrepass();
-	NewButton->SetVisibility(ESlateVisibility::Visible);
-	NewButton = nullptr;
-
-	FVector2D Translation = NewText->GetRenderTransform().Translation;
-	Translation.Y -= TextSettingsOffset;
-	NewText->SetRenderTranslation(Translation);
-	NewText = nullptr;
 }
 
 
-
-
-//---------------------------------------------------------------------------//
-void UMainMenu::Button_ExitSettingsPress()
+void UMainMenu::ToNewLevel()
 {
-	FVector2D Translation = Text_ExitSettings->GetRenderTransform().Translation;
-	Translation.Y += TextExitOffset;
-	Text_ExitSettings->SetRenderTranslation(Translation);
+	UGameplayStatics::OpenLevel(GetWorld(), TEXT("Level1"));
 }
 
 
-void UMainMenu::Button_ExitSettingsRelease()
+void UMainMenu::Finish_ForwardSettingsAnim()
 {
-	FVector2D Translation = Text_ExitSettings->GetRenderTransform().Translation;
-	Translation.Y -= TextExitOffset;
-	Text_ExitSettings->SetRenderTranslation(Translation);
+	Button_Low->SetVisibility(ESlateVisibility::Visible);
+	Button_High->SetVisibility(ESlateVisibility::Visible);
+	Button_ExitSettings->SetVisibility(ESlateVisibility::Visible);
+	CheckBox_Effects->SetVisibility(ESlateVisibility::Visible);
+	CheckBox_Music->SetVisibility(ESlateVisibility::Visible);
 }
 
 
-void UMainMenu::Button_ExitSettingsClick()
+void UMainMenu::Finish_ReverseSettingsAnim()
 {
 	Border_Settings->SetVisibility(ESlateVisibility::Collapsed);
-	Button_Start->SetVisibility(ESlateVisibility::Visible);
-	Button_Exit->SetVisibility(ESlateVisibility::Visible);
-	Button_Settings->SetVisibility(ESlateVisibility::Visible);
+
+	Button_Start->SetIsEnabled(false);
+	Button_Exit->SetIsEnabled(false);
+	Button_Settings->SetIsEnabled(false);
+
+	PlayAnimation(MainMenuAnim, 0.0f, 1, EUMGSequencePlayMode::Forward, MainMenuAnimSpeed);
+	GetWorld()->GetTimerManager().SetTimer(Timer0, [this]()
+		{
+			VerticalBox_Main->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		}, 0.01f, false);
 }
+
+
+void UMainMenu::Finish_ForwardQuitAnim()
+{
+	Slider_YesNo->SetIsEnabled(true);
+}
+
+
+void UMainMenu::Finish_ReverseQuitAnim()
+{
+	NSystemSlider->DeactivateSystem();
+	Border_Quit->SetVisibility(ESlateVisibility::Collapsed);
+	Slider_YesNo->SetValue(0.5f);
+
+	PlayAnimation(MainMenuAnim, 0.0f, 1, EUMGSequencePlayMode::Forward, MainMenuAnimSpeed);
+	GetWorld()->GetTimerManager().SetTimer(Timer0, [this]()
+		{
+			VerticalBox_Main->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			Button_Start->SetIsEnabled(false);
+			Button_Exit->SetIsEnabled(false);
+			Button_Settings->SetIsEnabled(false);
+		}, 0.01f, false);
+}
+
 
 
 
 
 //---------------------------------------------------------------------------//
-void UMainMenu::Button_YesPress()
+void UMainMenu::Button_StartClick()
 {
-	FVector2D Translation = Text_Y->GetRenderTransform().Translation;
-	Translation.Y += TextPlayOffset;
-	Text_Y->SetRenderTranslation(Translation);
+	UnbindFromAnimationFinished(MainMenuAnim, MainMenuEvent);
+	MainMenuEvent.Unbind();
+	MainMenuEvent.BindDynamic(this, &UMainMenu::UMainMenu::ToNewLevel);
+	BindToAnimationFinished(MainMenuAnim, MainMenuEvent);
+
+	Button_Start->SetIsEnabled(false);
+	Button_Exit->SetIsEnabled(false);
+	Button_Settings->SetIsEnabled(false);
+
+	PlayAnimation(MainMenuAnim, 0.0f, 1, EUMGSequencePlayMode::Reverse, MainMenuAnimSpeed);
 }
 
 
-void UMainMenu::Button_YesRelease()
-{
-	FVector2D Translation = Text_Y->GetRenderTransform().Translation;
-	Translation.Y -= TextPlayOffset;
-	Text_Y->SetRenderTranslation(Translation);
-}
 
 
-void UMainMenu::Button_YesClick()
+
+//---------------------------------------------------------------------------//
+void UMainMenu::Button_ExitClick()
 {
-	if (IsValid(PController))
+	if (Border_Quit->GetVisibility() == ESlateVisibility::Collapsed)
+	{
+		ToSettings = false;
+
+		Button_Start->SetIsEnabled(false);
+		Button_Exit->SetIsEnabled(false);
+		Button_Settings->SetIsEnabled(false);
+
+		NSystemSlider->GetNiagaraComponent()->SetVariablePosition(FName("StartPosition"),
+			FVector(-(NSystemSlider->GetDesiredWidgetSize().X / 2), 0.0f, 0.0f));
+		NiagaraUpdate(Slider_YesNo->GetValue());
+
+		UnbindFromAnimationFinished(MainMenuAnim, MainMenuEvent);
+		MainMenuEvent.Unbind();
+		MainMenuEvent.BindDynamic(this, &UMainMenu::Finish_ReverseMainMenuAnim);
+		BindToAnimationFinished(MainMenuAnim, MainMenuEvent);
+
+		UnbindFromAnimationFinished(QuitAnim, QuitEvent);
+		QuitEvent.Unbind();
+		QuitEvent.BindDynamic(this, &UMainMenu::Finish_ForwardQuitAnim);
+		BindToAnimationFinished(QuitAnim, QuitEvent);
+
+		PlayAnimation(MainMenuAnim, 0.0f, 1, EUMGSequencePlayMode::Reverse, MainMenuAnimSpeed);
+	}
+	else if (IsValid(PController))
 	{
 		PController->ConsoleCommand("quit");
 	}
@@ -310,30 +251,155 @@ void UMainMenu::Button_YesClick()
 
 
 
+//---------------------------------------------------------------------------//
+void UMainMenu::Button_SettingsClick()
+{
+	ToSettings = true;
+
+	Button_Start->SetIsEnabled(false);
+	Button_Exit->SetIsEnabled(false);
+	Button_Settings->SetIsEnabled(false);
+
+	UnbindFromAnimationFinished(MainMenuAnim, MainMenuEvent);
+	MainMenuEvent.Unbind();
+	MainMenuEvent.BindDynamic(this, &UMainMenu::Finish_ReverseMainMenuAnim);
+	BindToAnimationFinished(MainMenuAnim, MainMenuEvent);
+
+	UnbindFromAnimationFinished(SettingsAnim, SettingsEvent);
+	SettingsEvent.Unbind();
+	SettingsEvent.BindDynamic(this, &UMainMenu::Finish_ForwardSettingsAnim);
+	BindToAnimationFinished(SettingsAnim, SettingsEvent);
+
+	PlayAnimation(MainMenuAnim, 0.0f, 1, EUMGSequencePlayMode::Reverse, MainMenuAnimSpeed);
+}
+
+
+
+
 
 //---------------------------------------------------------------------------//
-void UMainMenu::Button_NoPress()
+void UMainMenu::Button_LowPress()
 {
-	FVector2D Translation = Text_N->GetRenderTransform().Translation;
-	Translation.Y += TextPlayOffset;
-	Text_N->SetRenderTranslation(Translation);
+	if (IsValid(GMode))
+	{
+		GMode->SetSettings(0);
+	}
+
+	Button_Low->SetIsEnabled(false);
+	Button_High->SetIsEnabled(true);
 }
 
 
-void UMainMenu::Button_NoRelease()
+void UMainMenu::Button_HighPress()
 {
-	FVector2D Translation = Text_N->GetRenderTransform().Translation;
-	Translation.Y -= TextPlayOffset;
-	Text_N->SetRenderTranslation(Translation);
+	if (IsValid(GMode))
+	{
+		GMode->SetSettings(2);
+	}
+
+	Button_Low->SetIsEnabled(true);
+	Button_High->SetIsEnabled(false);
 }
 
 
-void UMainMenu::Button_NoClick()
+
+
+//---------------------------------------------------------------------------//
+void UMainMenu::Button_ExitSettingsClick()
 {
-	Border_Quit->SetVisibility(ESlateVisibility::Collapsed);
-	Button_Start->SetVisibility(ESlateVisibility::Visible);
-	Button_Exit->SetVisibility(ESlateVisibility::Visible);
-	Button_Settings->SetVisibility(ESlateVisibility::Visible);
+	Button_Low->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	Button_High->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	Button_ExitSettings->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	UnbindFromAnimationFinished(MainMenuAnim, MainMenuEvent);
+	MainMenuEvent.Unbind();
+	MainMenuEvent.BindDynamic(this, &UMainMenu::Finish_ForwardMainMenuAnim);
+	BindToAnimationFinished(MainMenuAnim, MainMenuEvent);
+
+	UnbindFromAnimationFinished(SettingsAnim, SettingsEvent);
+	SettingsEvent.Unbind();
+	SettingsEvent.BindDynamic(this, &UMainMenu::Finish_ReverseSettingsAnim);
+	BindToAnimationFinished(SettingsAnim, SettingsEvent);
+
+	PlayAnimation(SettingsAnim, 0.0f, 1, EUMGSequencePlayMode::Reverse, SettingsAnimSpeed);
+}
+
+
+
+
+//---------------------------------------------------------------------------//
+void UMainMenu::Slider_YesNoProgressChanged(float Value)
+{
+	NiagaraUpdate(Value);
+
+	if (Value >= 0.9f)
+	{
+		Text_Y->SetRenderScale(QuitTextScale);
+	}
+	else if (Value <= 0.1f)
+	{
+		Text_N->SetRenderScale(QuitTextScale);
+	}
+	else
+	{
+		Text_Y->SetRenderScale(FVector2D(1.0f, 1.0f));
+		Text_N->SetRenderScale(FVector2D(1.0f, 1.0f));
+	}
+}
+
+
+void UMainMenu::Slider_YesNoMCaptureEnd()
+{
+	if (Slider_YesNo->GetValue() >= 0.9f)
+	{
+		if (IsValid(PController))
+		{
+			PController->ConsoleCommand("quit");
+		}
+	}
+	else if (Slider_YesNo->GetValue() <= 0.1f)
+	{
+		Slider_YesNo->SetIsEnabled(false);
+
+		Text_Y->SetRenderScale(FVector2D(1.0f, 1.0f));
+		Text_N->SetRenderScale(FVector2D(1.0f, 1.0f));
+
+		UnbindFromAnimationFinished(MainMenuAnim, MainMenuEvent);
+		MainMenuEvent.Unbind();
+		MainMenuEvent.BindDynamic(this, &UMainMenu::Finish_ForwardMainMenuAnim);
+		BindToAnimationFinished(MainMenuAnim, MainMenuEvent);
+
+		UnbindFromAnimationFinished(QuitAnim, QuitEvent);
+		QuitEvent.Unbind();
+		QuitEvent.BindDynamic(this, &UMainMenu::Finish_ReverseQuitAnim);
+		BindToAnimationFinished(QuitAnim, QuitEvent);
+
+		PlayAnimation(QuitAnim, 0.0f, 1, EUMGSequencePlayMode::Reverse, QuitAnimSpeed);
+	}
+	else
+	{
+		Slider_YesNo->SetValue(0.5f);
+
+		Text_Y->SetRenderScale(FVector2D(1.0f, 1.0f));
+		Text_N->SetRenderScale(FVector2D(1.0f, 1.0f));
+	}
+}
+
+
+void UMainMenu::NiagaraUpdate(float Offset)
+{
+	const float TotalWidth = NSystemSlider->GetDesiredWidgetSize().X;
+	const float EndPositionX = TotalWidth * (Offset - 0.5f);
+	const float MidPositionX = (EndPositionX / 2.0f) - (TotalWidth / 4.0f);
+	//The Pythagorean theorem
+	const float HalfWidth = TotalWidth / 2.0f;
+	const float TriangleHeight = FMath::Sqrt(
+		FMath::Square(HalfWidth) - FMath::Square((EndPositionX / 2.0f) + (TotalWidth / 4.0f)));
+
+	NSystemSlider->GetNiagaraComponent()->SetVariablePosition(FName("EndPosition"), 
+		FVector(EndPositionX, 0.0f, 0.0f));
+	NSystemSlider->GetNiagaraComponent()->SetVariablePosition(FName("MidPosition"), 
+		FVector(MidPositionX, 0.0f, TriangleHeight));
 }
 
 
@@ -351,6 +417,26 @@ void UMainMenu::NativeConstruct()
 	{
 		PController->InputComponent->BindAction("Quit", IE_Released, this, &UMainMenu::Button_ExitClick);
 	}
+
+	GMode = Cast<AMainMenu_GameMode>(GetWorld()->GetAuthGameMode());
+
+	UGameUserSettings* Settings = GEngine->GetGameUserSettings();
+	int Type = Settings->GetViewDistanceQuality();
+
+	switch (Type)
+	{
+	case 0:
+		Button_LowPress();
+		break;
+
+	case 2:
+		Button_HighPress();
+		break;
+
+	default: 
+		Button_HighPress();
+		return;
+	}
 }
 
 
@@ -364,7 +450,7 @@ void UMainMenu::NativeDestruct()
 	{
 		PController->InputComponent->RemoveActionBinding("Quit", IE_Released);
 	}
-
+	
 	Super::NativeDestruct();
 }
 

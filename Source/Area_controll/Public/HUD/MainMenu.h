@@ -10,7 +10,14 @@
 class UButton;
 class UTextBlock;
 class UBorder;
+class USlider;
+class UNiagaraSystemWidget;
+class UVerticalBox;
+class UWidgetAnimation;
+class UCheckBox;
 class AMainMenu_PlayerController;
+class AMainMenu_GameMode;
+class FWidgetAnimationDynamicEvent;
 
 
 UCLASS()
@@ -19,6 +26,8 @@ class AREA_CONTROLL_API UMainMenu : public UUserWidget
 	GENERATED_BODY()
 
 public:
+
+	UMainMenu(const FObjectInitializer& ObjectInitializer);
 
 protected:
 
@@ -31,62 +40,75 @@ protected:
 	UPROPERTY() FTimerHandle Timer0;
 
 	UPROPERTY() AMainMenu_PlayerController* PController;
+	UPROPERTY() AMainMenu_GameMode* GMode;
 
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Play;
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Exit;
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Settings;
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Y;
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_N;
-	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Low;
-	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Medium;
-	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_High;
-	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_ExitSettings;
+	//UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Low;
+	//UPROPERTY(meta = (BindWidget)) UTextBlock* Text_High;
+	//UPROPERTY(meta = (BindWidget)) UTextBlock* Text_ExitSettings;
 
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Start;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Exit;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Settings;
-	UPROPERTY(meta = (BindWidget)) UButton* Button_Yes;
-	UPROPERTY(meta = (BindWidget)) UButton* Button_No;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Low;
-	UPROPERTY(meta = (BindWidget)) UButton* Button_Medium;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_High;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_ExitSettings;
+
+	UPROPERTY(meta = (BindWidget)) UCheckBox* CheckBox_Effects;
+	UPROPERTY(meta = (BindWidget)) UCheckBox* CheckBox_Music;
+
+	UPROPERTY(meta = (BindWidget)) USlider* Slider_YesNo;
 
 	UPROPERTY(meta = (BindWidget)) UBorder* Border_Quit;
 	UPROPERTY(meta = (BindWidget)) UBorder* Border_Settings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) float TextPlayOffset;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) float TextSettingsOffset;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) float TextExitOffset;
+	UPROPERTY(meta = (BindWidget)) UVerticalBox* VerticalBox_Main;
 
-	UFUNCTION() void Button_StartPress();
-	UFUNCTION() void Button_StartRelease();
+	UPROPERTY(Transient, meta = (BindWidgetAnim)) UWidgetAnimation* MainMenuAnim;
+	UPROPERTY() FWidgetAnimationDynamicEvent MainMenuEvent;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim)) UWidgetAnimation* SettingsAnim;
+	UPROPERTY() FWidgetAnimationDynamicEvent SettingsEvent;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim)) UWidgetAnimation* QuitAnim;
+	UPROPERTY() FWidgetAnimationDynamicEvent QuitEvent;
+
+	UPROPERTY(meta = (BindWidget)) UNiagaraSystemWidget* NSystemSlider;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float MainMenuAnimSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float SettingsAnimSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float QuitAnimSpeed;
+
+	UPROPERTY() bool ToSettings;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FVector2D QuitTextScale;
+
+	UFUNCTION() void Finish_ForwardMainMenuAnim();
+	UFUNCTION() void Finish_ReverseMainMenuAnim();
+	UFUNCTION() void ToNewLevel();
+
+	UFUNCTION() void Finish_ForwardSettingsAnim();
+	UFUNCTION() void Finish_ReverseSettingsAnim();
+
+	UFUNCTION() void Finish_ForwardQuitAnim();
+	UFUNCTION() void Finish_ReverseQuitAnim();
+
 	UFUNCTION() void Button_StartClick();
 
-	UFUNCTION() void Button_ExitPress();
-	UFUNCTION() void Button_ExitRelease();
 	UFUNCTION() void Button_ExitClick();
 
-	UFUNCTION() void Button_SettingsPress();
-	UFUNCTION() void Button_SettingsRelease();
 	UFUNCTION() void Button_SettingsClick();
 
 	UFUNCTION() void Button_LowPress();
-	UFUNCTION() void Button_MediumPress();
 	UFUNCTION() void Button_HighPress();
-	UFUNCTION() void VideoSettingsReClick(UButton* Button1, UButton* Button2, UTextBlock* Text1, UTextBlock* Text2);
 
-	UFUNCTION() void Button_ExitSettingsPress();
-	UFUNCTION() void Button_ExitSettingsRelease();
 	UFUNCTION() void Button_ExitSettingsClick();
 
-	UFUNCTION() void Button_YesPress();
-	UFUNCTION() void Button_YesRelease();
-	UFUNCTION() void Button_YesClick();
-
-	UFUNCTION() void Button_NoPress();
-	UFUNCTION() void Button_NoRelease();
-	UFUNCTION() void Button_NoClick();
-
-
+	UFUNCTION() void Slider_YesNoProgressChanged(float Value);
+	UFUNCTION() void Slider_YesNoMCaptureEnd();
+	UFUNCTION() void NiagaraUpdate(float Offset);
 };

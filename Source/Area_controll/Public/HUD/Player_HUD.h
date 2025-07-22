@@ -10,6 +10,7 @@
 class UGameWidget;
 class UTowerWidget;
 class AMainTower;
+class UTowerWidget;
 
 
 
@@ -27,6 +28,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY() UGameWidget* GameWidget;
+	UPROPERTY() UTowerWidget* TWidget;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI") TSubclassOf<UGameWidget> WidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI") TSubclassOf<UTowerWidget> TWidgetClass;
