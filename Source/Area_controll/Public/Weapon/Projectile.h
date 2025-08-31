@@ -17,7 +17,7 @@ class AREA_CONTROLL_API AProjectile : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
+	
 	AProjectile();
 
 	virtual void Tick(float DeltaTime) override;
@@ -25,10 +25,7 @@ public:
 	UPROPERTY() AActor* Gun;
 	UPROPERTY() UPrimitiveComponent* Component;
 	UPROPERTY() FVector Aim;
-	UPROPERTY() TArray<FName> EnemyNames;
-
-
-	//UFUNCTION() virtual void SetBeginOvelap();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aims") TArray<FName> EnemyNames;
 
 protected:
 	// Called when the game starts or when spawned

@@ -19,7 +19,7 @@ public:
 
 protected:
 
-	virtual void DestroyFunc() override;
+	virtual void Destroyed() override;
 
 	virtual void BeginPlay() override;
 };

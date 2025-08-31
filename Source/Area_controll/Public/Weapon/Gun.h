@@ -39,11 +39,11 @@ public:
 	UPROPERTY() bool IsShieldOn;
 	UPROPERTY() UMaterialInstanceDynamic* DMaterial;
 
-	UFUNCTION() void Start();
+	UFUNCTION() virtual void Start();
 	UFUNCTION() void ColorFunc(FColor Color);
 	UFUNCTION() void SpawnFunc(FColor Color);
 	UFUNCTION() void DeleteFunc();
-	UFUNCTION() void TimerElapsed();
+	UFUNCTION() virtual void TimerElapsed();
 	UFUNCTION() void Stop();
 
 
@@ -78,11 +78,12 @@ protected:
 	UPROPERTY() FOnTimelineEvent TLFinish;
 
 
-	UPROPERTY() TArray<FName> EnemyNames;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Aims") TArray<FName> EnemyNames;
 	UPROPERTY() float Accurary;
 	UPROPERTY() float Gun_Delay;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float FreeInterval;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float FreeAngle;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float BaseRotatePlayRate;
 	UPROPERTY() float SpawnDelay;
 
 	UPROPERTY() bool IsFirst;
@@ -101,7 +102,7 @@ protected:
 	UPROPERTY() FTimerHandle TimerFreeRotate;
 	UPROPERTY() FTimerHandle TimerSpawn;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") FName CurrentComponentTag;
+	UPROPERTY() FName CurrentComponentTag;
 
 
 
@@ -111,7 +112,8 @@ protected:
 	UFUNCTION() virtual void Fire();
 	UFUNCTION() virtual bool ComponentIsFar(UPrimitiveComponent* Component);
 	UFUNCTION() virtual float HorizontalDistance(FVector A, FVector B);
-	UFUNCTION() void FreeRotate(float Amount);
+	UFUNCTION() virtual void FreeRotate(float Amount);
+	UFUNCTION() virtual void StartRotateTimeline();
 
 	UFUNCTION()
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,

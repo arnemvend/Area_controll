@@ -44,10 +44,6 @@ AGun::AGun()
 	FreeRotateTimeLine = CreateDefaultSubobject<UTimelineComponent>(TEXT("FreeTimeLine"));
 	FreeRotateTimeLine->SetLooping(false);
 	FreeRotateTimeLine->SetComponentTickInterval(0.04f);
-	
-	
-
-	
 
 	FreeInterval = 5.0f;
 
@@ -61,6 +57,7 @@ AGun::AGun()
 	OpasityPower2 = 2.0f;
 	IsShieldOn = false;
 	IsFirst = true;
+	BaseRotatePlayRate = 0.5f;
 }
 
 
@@ -78,8 +75,7 @@ void AGun::Start()
 	}
 	TLFinish.BindUFunction(this, FName("FireLogic"));
 	RotateTimeLine->SetTimelineFinishedFunc(TLFinish);
-	RotateTimeLine->SetPlayRate(0.4f);
-	FreeRotateTimeLine->SetPlayRate(0.4f);
+	FreeRotateTimeLine->SetPlayRate(0.3f);
 
 	GunRadius->OnComponentBeginOverlap.AddDynamic(this, &AGun::OnOverlapBegin);
 
@@ -101,7 +97,11 @@ void AGun::Start()
 				|| (IsValid(AimComponent) && ComponentIsFar(AimComponent))
 				|| (IsValid(AimComponent) && AimComponent->ComponentTags[0] != CurrentComponentTag))
 			{
-				Niagara->DeactivateImmediate();
+				if (IsValid(Niagara->GetAsset()))
+				{
+					Niagara->DeactivateImmediate();
+				}
+				
 				GunRadius->GetOverlappingComponents(OverlappedComponents);
 				if (OverlappedComponents.Num() > 0 && EnemyNames.Num() > 0)
 				{
@@ -149,7 +149,7 @@ void AGun::Start()
 					{
 						GetWorldTimerManager().ClearTimer(TimerFreeRotate);
 						FreeRotateTimeLine->Stop();
-						RotateTimeLine->PlayFromStart();
+						StartRotateTimeline();
 					}
 				}
 				else
@@ -161,7 +161,7 @@ void AGun::Start()
 			{
 				Fire();
 			}
-	}, Gun_Delay, true, 0.2f);
+	}, Gun_Delay, true, 0.1f);
 }
 
 
@@ -178,6 +178,20 @@ void AGun::Tracking()
 
 
 //logic of rotate
+void AGun::StartRotateTimeline()
+{
+	if (IsValid(AimComponent))
+	{
+		float DeltaYaw = FMath::FindDeltaAngleDegrees(UKismetMathLibrary::FindLookAtRotation
+		(GetActorLocation(), AimComponent->GetComponentLocation()).Yaw, GetActorRotation().Yaw);
+		DeltaYaw = FMath::Abs(DeltaYaw);
+		DeltaYaw = FMath::Max(DeltaYaw, 5.0f);
+		RotateTimeLine->SetPlayRate(BaseRotatePlayRate * 180.0f / DeltaYaw);
+		RotateTimeLine->PlayFromStart();
+	}
+}
+
+
 void AGun::Rotate(float Amount)
 {
 	if (IsValid(AimComponent))
@@ -197,9 +211,13 @@ void AGun::FreeRotate(float Amount)
 
 
 
+
 void AGun::FireLogic()
 {
-	Niagara->Activate();
+	if (IsValid(Niagara->GetAsset()))
+	{
+		Niagara->Activate();
+	}
 	if (GetWorldTimerManager().IsTimerPaused(TimerAim))
 	{
 		GetWorldTimerManager().UnPauseTimer(TimerAim);
@@ -230,7 +248,7 @@ void AGun::Fire()
 bool AGun::ComponentIsFar(UPrimitiveComponent* Component)
 {
 	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
-	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 14.0));
+	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0));
 }
 
 
@@ -261,9 +279,9 @@ void AGun::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActo
 					FreeRotateTimeLine->Stop();
 					AimComponent = AimComponents[0];
 					CurrentComponentTag = EnemyNames[i];
-					GetWorldTimerManager().PauseTimer(TimerAim);
-					GetWorldTimerManager().PauseTimer(TimerFire);
-					RotateTimeLine->PlayFromStart();
+					//GetWorldTimerManager().PauseTimer(TimerAim);
+					//GetWorldTimerManager().PauseTimer(TimerFire);
+					StartRotateTimeline();
 					break;
 				}
 			}
@@ -361,7 +379,10 @@ void AGun::Stop()
 	GetWorldTimerManager().ClearTimer(TimerFreeRotate);
 	GetWorldTimerManager().ClearTimer(TimerSpawn);
 
-	Niagara->DeactivateImmediate();
+	if (IsValid(Niagara->GetAsset()))
+	{
+		Niagara->DeactivateImmediate();
+	}
 	SpawnNiagara->DeactivateImmediate();
 
 	AimComponents.Empty(0);

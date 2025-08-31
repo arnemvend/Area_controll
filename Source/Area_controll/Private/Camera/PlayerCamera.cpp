@@ -75,7 +75,7 @@ void APlayerCamera::TouchMove(FVector2D Loc)
 	
 	DeltaLoc.Z = 0;
 
-	AddActorWorldOffset(DeltaLoc);
+	AddActorWorldOffset(DeltaLoc, false, nullptr, ETeleportType::ResetPhysics);
 	StartTouchWorldLoc = Loc;
 }
 
@@ -86,22 +86,26 @@ void APlayerCamera::CameraMove(FVector2D Loc, FIntPoint ScreenSize)
 {
 	if ((Loc.X < (ScreenSize.X * 0.08)) && (GetActorLocation().X <= SizeWorld))
 	{
-		AddActorWorldOffset(GetActorRightVector() * (-1.0f) * SpeedCameraScreen);
+		AddActorWorldOffset(GetActorRightVector() * (-1.0f) * SpeedCameraScreen, 
+			false, nullptr, ETeleportType::ResetPhysics);
 	}
 	if ((Loc.Y < (ScreenSize.Y * 0.08)) && (GetActorLocation().Y <= SizeWorld))
 	{
 		//AddMovementInput(GetActorForwardVector());
-		AddActorWorldOffset(GetActorForwardVector() * SpeedCameraScreen);
+		AddActorWorldOffset(GetActorForwardVector() * SpeedCameraScreen, 
+			false, nullptr, ETeleportType::ResetPhysics);
 	}
 	if ((Loc.X > (ScreenSize.X * 0.92)) && (GetActorLocation().X >= -SizeWorld))
 	{
-		AddActorWorldOffset(GetActorRightVector() * SpeedCameraScreen);
+		AddActorWorldOffset(GetActorRightVector() * SpeedCameraScreen, 
+			false, nullptr, ETeleportType::ResetPhysics);
 		//AddMovementInput(GetActorRightVector());
 	}
 	if ((Loc.Y > (ScreenSize.Y * 0.92)) && (GetActorLocation().Y >= -SizeWorld))
 	{
 		AddMovementInput(GetActorForwardVector(), -1);
-		AddActorWorldOffset(GetActorForwardVector() * (-1.0f) * SpeedCameraScreen);
+		AddActorWorldOffset(GetActorForwardVector() * (-1.0f) * SpeedCameraScreen, 
+			false, nullptr, ETeleportType::ResetPhysics);
 	}
 	
 }
@@ -132,7 +136,8 @@ void APlayerCamera::SpringArmRotate()
 {
 	GamerSpringArm->SetRelativeRotation(FRotator(
 		UKismetMathLibrary::MapRangeClamped(GamerSpringArm->TargetArmLength,
-			LenghtMin, LenghtMax, RotMin, RotMax),0.0f, 0.0f));
+			LenghtMin, LenghtMax, RotMin, RotMax),0.0f, 0.0f), 
+		false, nullptr, ETeleportType::ResetPhysics);
 }
 
 

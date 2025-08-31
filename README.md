@@ -87,3 +87,13 @@ List of updates:
 <img src="https://github.com/arnemvend/arnemvend/blob/main/images/10_AC.jpg" height="350"/>
 <img src="https://github.com/arnemvend/arnemvend/blob/main/images/11_AC.jpg" height="350"/>
 </div>
+
+
+
+
+---
+UPD
+---
+List of updates:
+- All preliminary weapon variants have been added.
+- Controller update frequency has been increased in test mode.

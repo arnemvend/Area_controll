@@ -15,12 +15,15 @@ AWild0::AWild0()
 	Mesh->SetMaterial(0, MeshMaterial);
 }
 
-void AWild0::DestroyFunc()
+void AWild0::Destroyed()
 {
-	BoomActor->CreateBoomFunc
-	(Mesh->GetComponentLocation(), FRotator::ZeroRotator, BoomActor->LightBoomSystem[0], Color);
+	if (IsValid(BoomActor) && IsValid(Mesh))
+	{
+		BoomActor->CreateBoomFunc
+		(Mesh->GetComponentLocation(), FRotator::ZeroRotator, BoomActor->LightBoomSystem[0], Color);
+	}
 
-	Super::DestroyFunc();
+	Super::Destroyed();
 }
 
 void AWild0::BeginPlay()

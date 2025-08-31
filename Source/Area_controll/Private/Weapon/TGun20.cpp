@@ -26,9 +26,9 @@ ATGun20::ATGun20()
 	SpownProjectile = LoadClass<AProjectile>
 		(nullptr, TEXT("/Game/Weapon/BP_tProjectile20.BP_tProjectile20_C"));
 
-	Niagara->SetAsset(LoadObject<UNiagaraSystem>
+	/*Niagara->SetAsset(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_ShootT20.NI_ShootT20'")));
-	Niagara->SetAutoActivate(false);
+	Niagara->SetAutoActivate(false);*/
 
 
 
@@ -43,7 +43,7 @@ ATGun20::ATGun20()
 bool ATGun20::ComponentIsFar(UPrimitiveComponent* Component)
 {
 	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
-	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 14.0) || Dist <= ExtRadius);
+	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0) || Dist <= ExtRadius);
 }
 
 
@@ -72,7 +72,7 @@ void ATGun20::Fire()
 	{
 		Prj = GetWorld()->SpawnActor<AProjectile>
 			(SpownProjectile, Niagara->GetComponentLocation(), FRotator::ZeroRotator);
-		if (IsValid(Prj))
+		if (IsValid(Prj) && IsValid(AimComponent))
 		{
 			Prj->Aim = FVector(AimComponent->GetComponentLocation().X,
 				AimComponent->GetComponentLocation().Y,Accurary);

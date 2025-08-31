@@ -182,9 +182,9 @@ void AAreaControll_PlayerController::OnTouchMove(const ETouchIndex::Type FingerI
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
 		PlayerCamera->TouchMove(Position);
 	}
-	if (!IsPinch && IsTouch1 && !IsTouch2 && CreatorIsHere && IsValid(BuildCreator))
+	if (!IsPinch && IsTouch1 && !IsTouch2 && CreatorIsHere && IsValid(BuildCreator) && BuildCreator->GetActorLocation().Z < 0.0f)
 	{
-		//supdate BuildCreator coordinates
+		//update BuildCreator coordinates
 		BuildCreatorMove(Loc);
 	}
 	MyLoc = Loc;
@@ -246,7 +246,10 @@ void AAreaControll_PlayerController::SpownCreatorFunc()
 				if (!IsValid(BuildCreator))
 				{
 					CreatorIsHere = false;
-					GetWorld()->GetTimerManager().ClearTimer(Timer1);
+					if (Timer1.IsValid())
+					{
+						GetWorld()->GetTimerManager().ClearTimer(Timer1);
+					}
 				}
 			}, 0.04f, true);
 	}
@@ -260,9 +263,7 @@ void AAreaControll_PlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	
-
-	if (IsValid(BuildCreator) && FVector2D(MyLoc.X, MyLoc.Y) == Loc1 && BuildCreator->GetActorLocation().Z > 0.0f)
+	if (IsValid(BuildCreator) && FVector2D(MyLoc.X, MyLoc.Y) == Loc1 && BuildCreator->GetActorLocation().Z >= 0.0f)
 	{
 		BuildCreatorMove(FVector(MyLoc));
 	}

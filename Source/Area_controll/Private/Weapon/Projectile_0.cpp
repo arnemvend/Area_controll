@@ -44,12 +44,9 @@ void AProjectile_0::BeginPlay()
 	Super::BeginPlay();
 
 	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
-	UAreaControll_GameInstance* GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
-	if (IsValid(GInstance))
-	{
-		Damage = GInstance->G0_Damage;
-	}
-	GInstance = nullptr;
+
+	SetterFunc();
+
 	FVector FVec = Sphere->GetForwardVector() * InitSpeed;
 	//timer for move
 	GetWorldTimerManager().SetTimer(Timer, [this, FVec]()
@@ -65,14 +62,20 @@ void AProjectile_0::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 {
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
-		BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[1], FColor::White);
+		if (IsValid(BoomActor))
+		{
+			BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[1], FColor::White);
+		}
 		Destroy();
 		return;
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
 		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), SweepResult.Location);
-		BoomActor->CreateBoomFunc(SweepResult.Location, SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
+		if (IsValid(BoomActor))
+		{
+			BoomActor->CreateBoomFunc(SweepResult.Location, SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
+		}
 		Destroy();
 		return;
 	}
@@ -84,11 +87,27 @@ void AProjectile_0::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 			{
 				UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
 				//spown Boom and destroy
-				BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[2], FColor::White);
+				if (IsValid(BoomActor))
+				{
+					BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->Proj0BoomSystem[2], FColor::White);
+				}
 				Destroy();
 				return;
 			}
 		}
+	}
+}
+
+
+
+
+
+void AProjectile_0::SetterFunc()
+{
+	UAreaControll_GameInstance* GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
+	if (IsValid(GInstance))
+	{
+		Damage = GInstance->G0_Damage;
 	}
 }
 

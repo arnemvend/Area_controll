@@ -27,6 +27,8 @@ AGun1::AGun1()
 	Niagara->SetAsset(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Shoot1.NI_Shoot1'")));
 
+	SpawnNiagara->DestroyComponent();
+
 	Accurary = 0.0f;
 }
 
@@ -48,7 +50,6 @@ void AGun1::BeginPlay()
 
 	if (IsValid(GInstance))
 	{
-		Accurary = GInstance->G1_Accurary;
 		Gun_Delay = GInstance->G1_GunDelay;
 		GunRadius->SetCapsuleRadius(GInstance->G1_Radius);
 	}

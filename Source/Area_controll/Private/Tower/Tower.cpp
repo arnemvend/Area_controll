@@ -648,7 +648,7 @@ void ATower::PartCommandFunc(bool Up)
 			{
 				PSNearestTowers.Empty();
 				TArray<ATower*> NearestBuildings = GMode->PlayerTowers;
-				NearestBuildings += GMode->EnemyTowers;
+				NearestBuildings.Append(GMode->EnemyTowers);
 
 				if (NearestBuildings.Num() > 0)
 				{
@@ -987,7 +987,7 @@ void ATower::CreateGun(int Type, int Number)
 	TSubclassOf<AGun> Gun;
 	if (Name == FName(TEXT("Your")))
 	{
-		Gun = GInstance->TGuns[Type * 5 + Number];
+		Gun = GInstance->TGuns[Type * 4 + Number];
 	}
 	else if (Name == FName(TEXT("YourEnemy")))
 	{

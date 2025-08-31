@@ -30,11 +30,14 @@ public:
 	UPROPERTY() UNiagaraSystem* ProjT10BoomSystem;
 	UPROPERTY() UNiagaraSystem* ProjT11BoomSystem;
 	UPROPERTY() UNiagaraSystem* ProjT20BoomSystem;
+	UPROPERTY() UNiagaraSystem* Proj2BoomSystem;
 
 	UPROPERTY() TArray<UNiagaraSystem*> BuildBoomSystem;
 	UPROPERTY() TArray<UNiagaraSystem*> Proj0BoomSystem;
 	UPROPERTY() TArray<UNiagaraSystem*> Proj1BoomSystem;
 	UPROPERTY() TArray<UNiagaraSystem*> ProjT00BoomSystem;
+	UPROPERTY() TArray<UNiagaraSystem*> ProjT22BoomSystem;
+	UPROPERTY() TArray<UNiagaraSystem*> ProjT23BoomSystem;
 	UPROPERTY() TArray<UNiagaraSystem*> LightBoomSystem;
 	
 

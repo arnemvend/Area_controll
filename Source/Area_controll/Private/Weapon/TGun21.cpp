@@ -45,7 +45,7 @@ ATGun21::ATGun21()
 bool ATGun21::ComponentIsFar(UPrimitiveComponent* Component)
 {
 	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
-	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 14.0) || Dist <= ExtRadius);
+	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0) || Dist <= ExtRadius);
 }
 
 

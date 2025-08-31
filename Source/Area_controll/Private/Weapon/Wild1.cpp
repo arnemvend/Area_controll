@@ -37,12 +37,15 @@ void AWild1::BeginPlay()
 
 
 
-void AWild1::DestroyFunc()
+void AWild1::Destroyed()
 {
-	BoomActor->CreateBoomFunc
-	(Mesh->GetComponentLocation(), FRotator::ZeroRotator, BoomActor->LightBoomSystem[1], Color);
+	if (IsValid(BoomActor) && IsValid(Mesh))
+	{
+		BoomActor->CreateBoomFunc
+		(Mesh->GetComponentLocation(), FRotator::ZeroRotator, BoomActor->LightBoomSystem[1], Color);
+	}
 
-	Super::DestroyFunc();
+	Super::Destroyed();
 }
 
 

@@ -27,6 +27,8 @@ AGun0::AGun0()
 	Niagara->SetAsset(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Shoot0.NI_Shoot0'")));
 
+	SpawnNiagara->DestroyComponent();
+
 }
 
 

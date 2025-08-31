@@ -125,7 +125,7 @@ void AMainTower::MainFinder(ATower* TTower)
 {
 	//set array for towers deactivate them
 	TArray<ATower*> ActorsOfThisClass = GMode->PlayerTowers;
-	ActorsOfThisClass += GMode->EnemyTowers;
+	ActorsOfThisClass.Append(GMode->EnemyTowers);
 
 	if (ActorsOfThisClass.Num() > 0)
 	{

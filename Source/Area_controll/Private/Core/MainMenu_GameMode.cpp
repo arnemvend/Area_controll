@@ -69,8 +69,6 @@ void AMainMenu_GameMode::SetSettings(int Type)
     Settings->SetGlobalIlluminationQuality(0);
     Settings->SetFrameRateLimit(60.0f);
 
-    GetWorld()->GetFirstPlayerController()->ConsoleCommand(TEXT("t.MaxFPS 60"));
-
     Settings->ApplySettings(false);
     Settings->SaveSettings();
 }

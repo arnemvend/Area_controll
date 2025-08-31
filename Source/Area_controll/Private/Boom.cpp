@@ -6,6 +6,8 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 
+
+
 // Sets default values
 ABoom::ABoom()
 {
@@ -27,6 +29,8 @@ ABoom::ABoom()
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomLight0.NI_BoomLight0'")));
 	LightBoomSystem.Add(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomLight1.NI_BoomLight1'")));
+	LightBoomSystem.Add(LoadObject<UNiagaraSystem>
+		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomLight2.NI_BoomLight2'")));
 
 	//Destroy FX for projectile 0
 	Proj0BoomSystem.Add(LoadObject<UNiagaraSystem>
@@ -41,6 +45,10 @@ ABoom::ABoom()
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom1_gr.NI_Boom1_gr'")));
 	Proj1BoomSystem.Add(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom1_obj.NI_Boom1_obj'")));
+
+	//Destroy FX for projectile 2
+	Proj2BoomSystem = LoadObject<UNiagaraSystem>
+		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Boom2_obj.NI_Boom2_obj'"));
 
 	//Destroy FX for projectile T00
 	ProjT00BoomSystem.Add(LoadObject<UNiagaraSystem>
@@ -59,6 +67,18 @@ ABoom::ABoom()
 	//Destroy FX for projectile T20
 	ProjT20BoomSystem = LoadObject<UNiagaraSystem>
 	    (nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomT20_gr.NI_BoomT20_gr'"));
+
+	//Destroy FX for projectile T22
+	ProjT22BoomSystem.Add(LoadObject<UNiagaraSystem>
+		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomT22_gr.NI_BoomT22_gr'")));
+	ProjT22BoomSystem.Add(LoadObject<UNiagaraSystem>
+		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomT22_obj.NI_BoomT22_obj'")));
+
+	//Destroy FX for projectile T23
+	ProjT23BoomSystem.Add(LoadObject<UNiagaraSystem>
+		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomT23_sh.NI_BoomT23_sh'")));
+	ProjT23BoomSystem.Add(LoadObject<UNiagaraSystem>
+		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomT23_obj.NI_BoomT23_obj'")));
 }
 
 
@@ -67,7 +87,7 @@ ABoom::ABoom()
 void ABoom::CreateBoomFunc(FVector Loc, FRotator Rot, UNiagaraSystem* Niagara, FColor Color)
 {
 	NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(Niagara, RootComponent, NAME_None, Loc,
-		Rot, EAttachLocation::Type::KeepRelativeOffset, true);
+		Rot, EAttachLocation::Type::KeepWorldPosition, true);
 	NiagaraComponent->SetVariableLinearColor(FName(TEXT("Color")), Color);
 }
 

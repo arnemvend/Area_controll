@@ -59,6 +59,7 @@ protected:
 	UPROPERTY() bool CanPress;
 	UPROPERTY() bool IsTouch1;
 	UPROPERTY() bool IsTouch2;
+	UPROPERTY() bool CanMove;
 
 
 	UPROPERTY() FTimerHandle Timer0;

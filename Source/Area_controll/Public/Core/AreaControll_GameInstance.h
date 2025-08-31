@@ -63,6 +63,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun01") int TG01_EnergyPrice;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun01") int TG01_ShootEnergyPrice;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun02") float TG02_GunDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun02") float TG02_Radius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun02") float TG02_Damage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun02") float TG02_SpawnDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun02") float TG02_Accurary;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun02") int TG02_EnergyPrice;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun02") int TG02_ShootEnergyPrice;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun03") float TG03_GunDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun03") float TG03_Radius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun03") float TG03_Damage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun03") float TG03_SpawnDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun03") int TG03_EnergyPrice;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun03") int TG03_ShootEnergyPrice;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun10") float TG10_GunDelay;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun10") float TG10_Radius;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun10") float TG10_ExtRadius;
@@ -79,6 +94,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun11") int TG11_RocketNum;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun11") int TG11_EnergyPrice;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun11") int TG11_ShootEnergyPrice;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun12") float TG12_GunDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun12") float TG12_Radius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun12") float TG12_Damage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun12") float TG12_SpawnDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun12") int TG12_EnergyPrice;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun12") int TG12_ShootEnergyPrice;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun13") float TG13_GunDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun13") float TG13_Radius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun13") float TG13_Damage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun13") float TG13_SpawnDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun13") float TG13_DownSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun13") float TG13_DownTime;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun13") int TG13_EnergyPrice;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun13") int TG13_ShootEnergyPrice;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun20") float TG20_GunDelay;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun20") float TG20_Radius;
@@ -100,6 +131,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun21") int TG21_EnergyPrice;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun21") int TG21_ShootEnergyPrice;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun22") float TG22_GunDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun22") float TG22_Radius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun22") float TG22_ExtRadius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun22") float TG22_Accurary;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun22") float TG22_Damage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun22") float TG22_SpawnDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun22") int TG22_EnergyPrice;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun22") int TG22_ShootEnergyPrice;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_GunDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_Radius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_ExtRadius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_Accurary;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_Damage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_SpawnDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_LifeTime;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_DamageRadius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") float TG23_DamageTime;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") int TG23_EnergyPrice;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TGuns|TGun23") int TG23_ShootEnergyPrice;
+
 	//WildFabric------------------------------------------------->
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WildFabric") float WF_MaxHealth;
 
@@ -115,13 +167,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild1") float W1_Speed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild1") float W1_High;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild1") float W1_MaxHealth;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild1|Gun1") float G1_Accurary;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild1|Gun1") float G1_GunDelay;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild1|Gun1") float G1_Radius;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild1|Gun1") float G1_Damage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild1|Gun1") float G1_Splash;
 
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2") float W2_Speed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2") float W2_High;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2") float W2_MaxHealth;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2|Gun2") float G2_GunDelay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2|Gun2") float G2_Radius;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2|Gun2") float G2_Damage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2|Gun2") float G2_PrHealth;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2|Gun2") float G2_PrSpeed;
 
 protected:
 };

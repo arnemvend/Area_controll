@@ -25,11 +25,11 @@ ATGun00::ATGun00()
 	SpownProjectile = LoadClass<AProjectile>
 		(nullptr, TEXT("/Game/Weapon/BP_tProjectile00.BP_tProjectile00_C"));
 
-	Niagara->SetAsset(LoadObject<UNiagaraSystem>
+	/*Niagara->SetAsset(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_ShootT00.NI_ShootT00'")));
-	Niagara->SetAutoActivate(false);
+	Niagara->SetAutoActivate(false);*/
 	
-
+	Accurary = 0.0f;
 
 	EnemyNames.Empty();
 	EnemyNames.Add("WildLighter");
@@ -41,7 +41,7 @@ ATGun00::ATGun00()
 bool ATGun00::ComponentIsFar(UPrimitiveComponent* Component)
 {
 	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
-	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 14.0) || Dist <= ExtRadius);
+	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0) || Dist <= ExtRadius);
 }
 
 

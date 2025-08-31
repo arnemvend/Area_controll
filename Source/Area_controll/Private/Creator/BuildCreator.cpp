@@ -145,7 +145,7 @@ void ABuildCreator::MovingFunc(FVector2D Loc)
 	}
 	else
 	{
-		SetActorLocation(FVector(Loc.X, Loc.Y, 0.1f));
+		SetActorLocation(FVector(Loc.X, Loc.Y, 0.1f), false, nullptr, ETeleportType::ResetPhysics);
 	}
 }
 
@@ -259,7 +259,7 @@ void ABuildCreator::Destroyed()
 {
 	
 
-	SetActorLocation(FVector(0.0f, 0.0f, -2000.0f));
+	SetActorLocation(FVector(0.0f, 0.0f, -2000.0f), false, nullptr, ETeleportType::ResetPhysics);
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
 

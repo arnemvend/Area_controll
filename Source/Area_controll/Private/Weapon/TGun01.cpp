@@ -25,9 +25,9 @@ ATGun01::ATGun01()
 	SpownProjectile = LoadClass<AProjectile>
 		(nullptr, TEXT("/Game/Weapon/BP_tProjectile01.BP_tProjectile01_C"));
 
-	Niagara->SetAsset(LoadObject<UNiagaraSystem>
+	/*Niagara->SetAsset(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_ShootT01.NI_ShootT01'")));
-	Niagara->SetAutoActivate(false);
+	Niagara->SetAutoActivate(false);*/
 
 
 	EnemyNames.Empty();

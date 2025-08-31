@@ -25,9 +25,9 @@ ATGun10::ATGun10()
 	SpownProjectile = LoadClass<AProjectile>
 		(nullptr, TEXT("/Game/Weapon/BP_tProjectile10.BP_tProjectile10_C"));
 
-	Niagara->SetAsset(LoadObject<UNiagaraSystem>
+	/*Niagara->SetAsset(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_ShootT10.NI_ShootT10'")));
-	Niagara->SetAutoActivate(false);
+	Niagara->SetAutoActivate(false);*/
 
 
 	EnemyNames.Empty();
@@ -64,7 +64,7 @@ void ATGun10::Tracking()
 bool ATGun10::ComponentIsFar(UPrimitiveComponent* Component)
 {
 	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
-	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 14.0) || Dist <= ExtRadius);
+	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0) || Dist <= ExtRadius);
 }
 
 

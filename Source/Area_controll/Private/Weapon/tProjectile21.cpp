@@ -108,7 +108,7 @@ void AtProjectile21::MoveToDown()
 					Sphere->AddWorldOffset(FVector(0.0f, 0.0f, -150.0f), true);
 				}, 0.03f, true);
 
-		}, TimeStep, true, 0.05f);
+		}, TimeStep, true, 0.01f);
 }
 
 

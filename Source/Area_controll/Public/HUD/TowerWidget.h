@@ -50,12 +50,18 @@ protected:
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Delete0;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_gun00;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_gun01;
+	UPROPERTY(meta = (BindWidget)) UButton* Button_gun02;
+	UPROPERTY(meta = (BindWidget)) UButton* Button_gun03;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Delete1;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_gun10;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_gun11;
+	UPROPERTY(meta = (BindWidget)) UButton* Button_gun12;
+	UPROPERTY(meta = (BindWidget)) UButton* Button_gun13;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Delete2;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_gun20;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_gun21;
+	UPROPERTY(meta = (BindWidget)) UButton* Button_gun22;
+	UPROPERTY(meta = (BindWidget)) UButton* Button_gun23;
 
 	UPROPERTY() FTimerHandle Timer0;
 	UPROPERTY() FTimerHandle Timer1;
@@ -70,10 +76,16 @@ protected:
 	UFUNCTION() void Button_LowGunClick();
 	UFUNCTION() void Button_gun00Click();
 	UFUNCTION() void Button_gun01Click();
+	UFUNCTION() void Button_gun02Click();
+	UFUNCTION() void Button_gun03Click();
 	UFUNCTION() void Button_gun10Click();
 	UFUNCTION() void Button_gun11Click();
+	UFUNCTION() void Button_gun12Click();
+	UFUNCTION() void Button_gun13Click();
 	UFUNCTION() void Button_gun20Click();
 	UFUNCTION() void Button_gun21Click();
+	UFUNCTION() void Button_gun22Click();
+	UFUNCTION() void Button_gun23Click();
 	UFUNCTION() void Button_Delete0Click();
 	UFUNCTION() void Button_Delete1Click();
 	UFUNCTION() void Button_Delete2Click();

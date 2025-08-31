@@ -56,11 +56,7 @@ public:
 	UPROPERTY() bool IsRepeater;
 	UPROPERTY() bool IsProcessRun;
 	UPROPERTY() bool IsClicked;
-
-
-	
-
-
+	UPROPERTY() bool CanDamage;
 
 
 
@@ -130,7 +126,6 @@ protected:
 	//"Other variables"----------------------------------------------------------------------------------------->
 	
 	UPROPERTY() bool CanDie;
-	UPROPERTY() bool CanDamage;
 
 	UPROPERTY() int MaxWave;
 	UPROPERTY() int EnergyLoss;

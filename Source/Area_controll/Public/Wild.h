@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/TimelineComponent.h"
 #include "GameFramework/Actor.h"
 #include "Wild.generated.h"
 
@@ -12,7 +11,6 @@ class AGun;
 class UStaticMeshComponent;
 class UStaticMesh;
 class UMaterialInterface;
-class UTimelineComponent;
 class UCurveFloat;
 class UBoxComponent;
 class UChildActorComponent;
@@ -32,15 +30,23 @@ class AREA_CONTROLL_API AWild : public AActor
 public:	
 
 	AWild();
+
 	virtual void Tick(float DeltaTime) override;
+
+	virtual void Destroyed() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) UBoxComponent* Box;
 
 	UPROPERTY() FVector AimCoord;
 	UPROPERTY() FColor Color;
 
+	UPROPERTY() float DownDpeed;
+	UPROPERTY() float DownTime;
 
 	UFUNCTION() void Start();
+	//for tgun13 functions
+	UFUNCTION() void MoveDownStart();
+	UFUNCTION() void MoveDownStop();
 
 protected:
 
@@ -52,7 +58,6 @@ protected:
 	UPROPERTY() UStaticMesh* MyStaticMesh;
 
 	UPROPERTY() UMaterialInterface* MeshMaterial;
-	UPROPERTY() UMaterialInterface* ShadowMaterial;
 
 	UPROPERTY() UMaterialInstanceDynamic* DMeshMaterial;
 
@@ -62,39 +67,35 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) USplineComponent* Spline;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) UTimelineComponent* StartTimeLine;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) UTimelineComponent* MoveTimeLine;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curves") UCurveFloat* CurveFloat0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curves") UCurveFloat* CurveFloat1;
-
-	UPROPERTY() FOnTimelineFloat TLCallbackStart;
-	UPROPERTY() FOnTimelineFloat TLCallbackMove;
-	UPROPERTY() FOnTimelineFloat TLCallbackHigh;
-	UPROPERTY() FOnTimelineEvent TLFinish;
 
 	UPROPERTY() UNiagaraSystem* NiagaraSystem;
 
+	UPROPERTY() FTimerHandle CreateTimer;
+	UPROPERTY() FTimerHandle MoveTimer;
+	UPROPERTY() FTimerHandle DownTimer;
+	UPROPERTY() FTimerHandle DownStop;
+
 	UPROPERTY() ABoom* BoomActor;
-	
-	UPROPERTY() FVector CurrentCoord;
-	UPROPERTY() FVector CurrentScaleShMesh;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) float EndScaleShMesh;
+
+	UPROPERTY() int CurrentMoveNumber;
+	UPROPERTY() int EndUp;
 	UPROPERTY() float Speed;
 	UPROPERTY() float High;
 	UPROPERTY() float Health;
 	UPROPERTY() float MaxHealth;
-	UPROPERTY() FRotator CurrentRotation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float CreationTime;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float CustomDeltaTime;
+	UPROPERTY() float CurrentCreateValue;
 	UPROPERTY() bool CanDamage;
+	UPROPERTY() bool CanDown;
+
+	UPROPERTY() TArray<FVector> LocArr;
+	UPROPERTY() TArray<FRotator> RotArr;
 
 
-	
-	UFUNCTION() void CreateFunc(float Amount);
+
 	UFUNCTION() void Continue();
-	UFUNCTION() void MoveFunc(float Amount);
-	UFUNCTION() void HighFunc(float Amount);
-	UFUNCTION() void FinishFunc();
-	UFUNCTION() virtual void DestroyFunc();
 
 	UFUNCTION()
 	void OnBoxOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
