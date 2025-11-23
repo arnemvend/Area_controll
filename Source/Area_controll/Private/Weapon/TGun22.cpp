@@ -4,11 +4,11 @@
 #include "Weapon/TGun22.h"
 #include "Weapon/tProjectile22.h"
 #include "Components/CapsuleComponent.h"
-#include "NiagaraSystem.h"
+//#include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"
-#include "Kismet/KismetMathLibrary.h"
+//#include "Kismet/KismetMathLibrary.h"
 #include "Weapon/Projectile.h"
 
 
@@ -23,6 +23,8 @@ ATGun22::ATGun22()
 		(nullptr, TEXT("MaterialInstanceConstant'/Game/Buildings/Materials/MI_TGun22.MI_TGun22'"));
 
 	GunMesh->SetMaterial(0, GunMaterial);
+
+	GunRadius->ComponentTags.Add("Radius");
 
 	SpownProjectile = LoadClass<AProjectile>
 		(nullptr, TEXT("/Game/Weapon/BP_tProjectile22.BP_tProjectile22_C"));
@@ -60,46 +62,14 @@ void ATGun22::BeginPlay()
 
 
 
-bool ATGun22::ComponentIsFar(UPrimitiveComponent* Component)
-{
-	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
-	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0) || Dist <= ExtRadius);
-}
-
-
-
-
-
-void ATGun22::Rotate(float Amount)
-{
-	Super::Rotate(Amount);
-
-	SetActorRotation(UKismetMathLibrary::RLerp
-	(GetActorRotation(), FRotator(0.0f, Rot.Yaw, 0.0f), Amount, true));
-}
-
-
-
-
-
-
-void ATGun22::Tracking()
-{
-}
-
-
-
-
-
-
 void ATGun22::Fire()
 {
-	if (IsValid(GMode) && GMode->PlayerEnergy >= ShootEnergyPrice)
+	if (IsValid(GMode) && GMode->PlayerEnergy >= ShootEnergyPrice && IsValid(AimComponent))
 	{
 		Prj = GetWorld()->SpawnActor<AProjectile>
 			(SpownProjectile, Niagara->GetComponentLocation(), Niagara->GetComponentRotation());
 
-		if (IsValid(Prj) && IsValid(AimComponent))
+		if (IsValid(Prj))
 		{
 			Prj->Aim = FVector(AimComponent->GetComponentLocation());
 			AtProjectile22* Projectile = Cast<AtProjectile22>(Prj);
@@ -110,6 +80,7 @@ void ATGun22::Fire()
 			Projectile = nullptr;
 		}
 		GMode->PlayerEnergy = FMath::Max(0, GMode->PlayerEnergy - ShootEnergyPrice);
+		Prj = nullptr;
 	}
 }
 

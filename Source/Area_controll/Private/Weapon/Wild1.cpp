@@ -37,7 +37,8 @@ void AWild1::BeginPlay()
 
 
 
-void AWild1::Destroyed()
+
+void AWild1::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (IsValid(BoomActor) && IsValid(Mesh))
 	{
@@ -45,7 +46,7 @@ void AWild1::Destroyed()
 		(Mesh->GetComponentLocation(), FRotator::ZeroRotator, BoomActor->LightBoomSystem[1], Color);
 	}
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 

@@ -47,9 +47,6 @@ protected:
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Settings;
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Y;
 	UPROPERTY(meta = (BindWidget)) UTextBlock* Text_N;
-	//UPROPERTY(meta = (BindWidget)) UTextBlock* Text_Low;
-	//UPROPERTY(meta = (BindWidget)) UTextBlock* Text_High;
-	//UPROPERTY(meta = (BindWidget)) UTextBlock* Text_ExitSettings;
 
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Start;
 	UPROPERTY(meta = (BindWidget)) UButton* Button_Exit;
@@ -84,8 +81,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float QuitAnimSpeed;
 
 	UPROPERTY() bool ToSettings;
+	UPROPERTY() bool IsYes;
+	UPROPERTY() bool IsNo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) FVector2D QuitTextScale;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float QuitTextScale;
+	UPROPERTY() float FontSize;
+
+	UPROPERTY() FSlateFontInfo FontInfo;
+
 
 	UFUNCTION() void Finish_ForwardMainMenuAnim();
 	UFUNCTION() void Finish_ReverseMainMenuAnim();

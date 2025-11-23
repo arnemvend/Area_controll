@@ -19,6 +19,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Tower/MainTower.h"
+#include "Weapon/TGun2.h"
 
 
 ATower::ATower()
@@ -71,10 +72,6 @@ ATower::ATower()
 	SphereShieldMesh->SetMaterial(0, SphereShieldMaterial);
 
 
-	//last update for repeater
-	MyStaticMesh = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Buildings/Meshes/Repeater.Repeater'"));
-
-
 
 	//"Set parameters of triggers"------------------------------------------------------------------------------->
 	//Internal trigger
@@ -108,7 +105,7 @@ ATower::ATower()
 	NiagaraNetSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/Buildings/FX/NI_Net.NI_Net'"));
 	NiagaraNet->SetAsset(NiagaraNetSystem);
 	NiagaraNet->SetAutoActivate(false);
-	
+	NiagaraNet->SetEmitterEnable("StaticBeam", false);
 
 
 	NiagaraRepeater = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraRepeaterComponent"));
@@ -140,6 +137,7 @@ ATower::ATower()
 	TemporaryTower = nullptr; //The tower is higher on the network
 	TW = nullptr;
 	Wave = 0;
+	GunNum = 0;
 	MaxWave = 0;
 	NameMain = FName(TEXT("Main"));
 	NameMainEnemy = FName(TEXT("MainEnemy"));
@@ -148,6 +146,8 @@ ATower::ATower()
 	IsRepeater = false;
 	CanDie = true;
 	CanDamage = false;
+	IsAuto = false;
+	HaveLowGun = false;
 
 
 	OnTakeAnyDamage.AddDynamic(this, &ATower::OnTakeDamage);
@@ -237,18 +237,21 @@ void ATower::SetDamageFunc()
 //the function of removing the selection
 void ATower::DeTouch(int Value)
 {
-	if (IsClicked)
+	if (IsClicked && IsValid(BoomActor) && IsValid(GMode))
 	{
-		DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 1.0f);
-		float Op; 
-		DDiskMaterial->GetScalarParameterValue(TEXT("EmissiveMultiply"), Op);
-		DDiskMaterial->SetScalarParameterValue(TEXT("EmissiveMultiply"), Op / 2);
 		if (IsValid(TW) && TW->IsInViewport())
 		{
 			TW->RemoveFromParent();
 			TW->Reset();
 		}
+		DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 1.0f);
+		float Op; 
+		DDiskMaterial->GetScalarParameterValue(TEXT("EmissiveMultiply"), Op);
+		DDiskMaterial->SetScalarParameterValue(TEXT("EmissiveMultiply"), Op / 2);
+		NiagaraNet->SetEmitterEnable("StaticBeam", false);
 		IsClicked = false;
+		UnSetAimComponents();
+		OnOffTargetEffect(false);
 	}
 }
 
@@ -257,45 +260,61 @@ void ATower::DeTouch(int Value)
 //The function of marking the selection
 void ATower::Touch(ETouchIndex::Type FingerIndex, AActor* TouchedActor)
 {
-	if (ActorHasTag(TEXT("Your")))
+	if (PController->IsPaused() || !IsValid(GMode))
 	{
-		if (IsClicked)
+		return;
+	}
+	if (IsClicked)
+	{
+		DeTouch(0);
+	}
+	else if (ActorHasTag(TEXT("Your")) && IsValid(TW))
+	{
+		//search for a highlighted tower and deselect it
+		if (IsValid(TW->MyTower) && TW->MyTower->IsClicked)
 		{
-			ATower::DeTouch(0);
+			TW->MyTower->DeTouch(0);
 		}
-		else
+		DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 0.0f);
+		float Op;
+		DDiskMaterial->GetScalarParameterValue(TEXT("EmissiveMultiply"), Op);
+		DDiskMaterial->SetScalarParameterValue(TEXT("EmissiveMultiply"), Op * 2);
+		NiagaraNet->SetEmitterEnable("StaticBeam", true);
+		IsClicked = true;
+		//if the tower has its own, the menu is turned on
+		TW->MyTower = this;
+		TW->StartEvent();
+		if (!TW->IsInViewport())
 		{
-			//search for a highlighted tower and deselect it
-			if (GMode->PlayerTowers.Num() > 0)
-			{
-				for (int i = 0; i < GMode->PlayerTowers.Num(); i++)
+			GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
 				{
-					if (IsValid(GMode->PlayerTowers[i]) && GMode->PlayerTowers[i] != this
-						&& GMode->PlayerTowers[i]->IsClicked)
-					{
-						GMode->PlayerTowers[i]->DeTouch(0);
-					}
-				}
-			}
-
-			DTowMaterial->SetScalarParameterValue(TEXT("ClickValue"), 0.0f);
-			float Op;
-			DDiskMaterial->GetScalarParameterValue(TEXT("EmissiveMultiply"), Op);
-			DDiskMaterial->SetScalarParameterValue(TEXT("EmissiveMultiply"), Op * 2);
-			IsClicked = true;
-			//if the tower has its own, the menu is turned on
-			if (ActorHasTag(FName(TEXT("Your"))))
-			{
-				if (IsValid(TW) && TW->IsInViewport() == false)
-				{
-					TW->MyTower = this;
-					TW->StartEvent();
 					TW->AddToViewport();
-				}
+				}));
+		}
+		OnOffTargetEffect(true);
+	}
+	else if (ActorHasTag(TEXT("YourEnemy")) 
+		&& GMode->PlayerTowers.Num() > 0
+		&& BoomActor->AimCompArr.Contains(TriggerCapsuleInternal))
+	{
+		for (int i = GMode->PlayerTowers.Num() - 1; i >= 0; --i)
+		{
+			if (!IsValid(GMode->PlayerTowers[i]))
+			{
+				GMode->PlayerTowers.RemoveAtSwap(i);
+			}
+			else if (GMode->PlayerTowers[i]->IsClicked)
+			{
+				GMode->PlayerTowers[i]->TargetAim(TriggerCapsuleInternal);
+				break;
 			}
 		}
+		UnSetAimComponents();
 	}
 }
+
+
+
 
 
 //"On repeater function"------------------------------------------------------------------------------------->
@@ -313,7 +332,15 @@ void ATower::Repeater()
 		CollisionEnergy->SetCapsuleRadius(1.0f);
 		CollisionEnergy->SetCapsuleHalfHeight(1.0f);
 		DDiskMaterial->SetScalarParameterValue(TEXT("ShadowParam"), 0.0f);
-		TowerMesh->SetStaticMesh(MyStaticMesh);
+		TowerMesh->SetMobility(EComponentMobility::Movable);
+		if (IsValid(GMode) && IsValid(GMode->RepeaterMesh))
+		{
+			TowerMesh->SetStaticMesh(GMode->RepeaterMesh);
+		}
+		TowerMesh->SetMobility(EComponentMobility::Static);
+		TowerMesh->MarkRenderStateDirty();
+		TowerMesh->RecreatePhysicsState();
+
 		Influence = TriggerCapsuleInternal->GetScaledCapsuleRadius() + TriggerCapsuleExternal->GetScaledCapsuleRadius();
 		
 		//restarting the search for disabled towers
@@ -332,7 +359,6 @@ void ATower::Repeater()
 
 		NiagaraRepeater->Activate();
 		NiagaraRepeater->SetVariableLinearColor(TEXT("Color"), MyColor);
-		NiagaraRepeater->SetAutoDestroy(true);
 	}
 }
 
@@ -373,11 +399,13 @@ void ATower::IsMainFunc(bool IsYour)
 	//network search
 	if (IsYour)
 	{
-		ReEnter(Main->Name);
+		//ReEnter(Main->Name);
+		Main->MainFinder();
 	}
 	else
 	{
-		ReEnter(MainEnemy->Name);
+		//ReEnter(MainEnemy->Name);
+		MainEnemy->MainFinder();
 	}
 }
 
@@ -412,32 +440,7 @@ void ATower::ReEnter(FName AName)
 	}
 
 	ActorsOfClass.Empty();
-	if (StepTowers.Num() == 0)
-	{
-		if (AName == FName(TEXT("Your")))
-		{
-			ActorsOfClass = GMode->EnemyTowers;
-		}
-		if (AName == FName(TEXT("YourEnemy")))
-		{
-			ActorsOfClass = GMode->PlayerTowers;
-		}
-	}
-
-	if (ActorsOfClass.Num() > 0)
-	{
-		for (int i = 0; i < ActorsOfClass.Num(); i++)
-		{
-			if (IsValid(ActorsOfClass[i]) && ActorsOfClass[i] != this
-				&& (GetHorizontalDistanceTo(ActorsOfClass[i]) <= ActorsOfClass[i]->Influence
-					|| GetHorizontalDistanceTo(ActorsOfClass[i]) <= Influence))
-			{
-				StepTowers.AddUnique(ActorsOfClass[i]);
-			}
-		}
-	}
-
-	ActorsOfClass.Empty(0);
+	
 	//check distance to other tower
 	CheckStep(MaxWave);
 
@@ -574,10 +577,6 @@ void ATower::SetParam()
 	
 	
 }
-
-
-
-
 
 
 
@@ -781,46 +780,6 @@ void ATower::ScaleFunc(UStaticMeshComponent* Mesh)
 }
 
 
-void ATower::CanFire(bool CanFire, bool bNeedStop, bool bNeedStart)
-{
-	if (!IsValid(UpGun) || !IsValid(MidGun) || !IsValid(LowGun))
-	{
-		return;
-	}
-
-	TArray<UChildActorComponent*> TGuns;
-	TGuns.Add(UpGun);
-	TGuns.Add(MidGun);
-	TGuns.Add(LowGun);
-
-	AGun* MyGun;
-
-	for (int i = 0; i < TGuns.Num(); i++)
-	{
-		if (IsValid(TGuns[i]) && IsValid(TGuns[i]->GetChildActor()))
-		{
-			MyGun = Cast<AGun>(TGuns[i]->GetChildActor());
-			if (IsValid(MyGun))
-			{
-				MyGun->IsShieldOn = !CanFire;
-				if (bNeedStop && IsValid(MyGun->DMaterial) && IsValid(GInstance))
-				{
-					MyGun->Stop();
-					MyGun->DMaterial->SetVectorParameterValue(TEXT("LightParam"), GInstance->DefaultColor);
-					MyGun->DMaterial->SetScalarParameterValue(TEXT("Param_EmissiveMultiply"), 0.0f);
-				}
-				if (bNeedStart)
-				{
-					MyGun->SpawnFunc(MyColor);
-				}
-			}
-		}
-
-	}
-
-	TGuns.Empty(0);
-	MyGun = nullptr;
-}
 
 
 
@@ -829,23 +788,22 @@ void ATower::CanFire(bool CanFire, bool bNeedStop, bool bNeedStart)
 //"Destroy Tower logic"-------------------------------------------------------------------------->
 void ATower::TowerDestroy()
 {
-	if (!IsValid(BoomActor))
-	{
-		return;
-	}
 	if (Tags.Num() == 0)
 	{
 		TriggerCapsuleExternal->DestroyComponent();
 		TriggerCapsuleInternal->DestroyComponent();
-		BoomActor->CreateBoomFunc(GetActorLocation(), FRotator::ZeroRotator,
-			BoomActor->BuildBoomSystem[0], FColor::White);
+		if (IsValid(BoomActor))
+		{
+			BoomActor->CreateBoomFunc(GetActorLocation(), FRotator::ZeroRotator,
+				BoomActor->BuildBoomSystem[0], FColor::White);
+		}
 		NetOff();
 		GMode->DisabledTowers.RemoveSwap(this);
 		Destroy();
 	}
 	else
 	{
-		if (Main != this && MainEnemy != this && CanDie)
+		if (Main != this && MainEnemy != this && CanDie && IsValid(BoomActor))
 		{
 			BoomActor->CreateBoomFunc(GetActorLocation(), FRotator::ZeroRotator,
 				BoomActor->BuildBoomSystem[0], MyColor);
@@ -862,14 +820,47 @@ void ATower::TowerDelete()
 	TriggerCapsuleExternal->DestroyComponent();
 	TriggerCapsuleInternal->DestroyComponent();
 	CanDie = false;
+
+	//set array for towers deactivate them
+	TArray<ATower*> ActorsOfThisClass;
 	if (ActorHasTag(TEXT("Your")))
 	{
-		Main->MainFinder(this);
+		ActorsOfThisClass = GMode->PlayerTowers;
 	}
-	if (ActorHasTag(TEXT("YourEnemy")))
+	else if (ActorHasTag(TEXT("YourEnemy")))
 	{
-		MainEnemy->MainFinder(this);
+		ActorsOfThisClass.Append(GMode->EnemyTowers);
 	}
+
+	if (ActorsOfThisClass.Num() > 0)
+	{
+		for (int i = 0; i < ActorsOfThisClass.Num(); i++)
+		{
+			if (IsValid(ActorsOfThisClass[i]) && ActorsOfThisClass[i]->ActorHasTag(Name)
+				&& Main != ActorsOfThisClass[i] && MainEnemy != ActorsOfThisClass[i]
+				&& ActorsOfThisClass[i]->AdressTower.Num() > AdressTower.Num())
+			{
+				if (ActorsOfThisClass[i]->AdressTower[Wave] == AdressTower.Last())
+				{
+					ActorsOfThisClass[i]->NetOff();
+				}
+			}
+		}
+	}
+	ActorsOfThisClass.Empty(0);
+
+	if (ActorHasTag(TEXT("Your")) && IsValid(Main))
+	{
+		Main->MainFinder();
+	}
+	else if (ActorHasTag(TEXT("YourEnemy")) && IsValid(MainEnemy))
+	{
+		MainEnemy->MainFinder();
+	}
+
+	NetOff();
+	GMode->DisabledTowers.RemoveSwap(this);
+	Destroy();
 }
 
 
@@ -878,10 +869,14 @@ void ATower::TowerDelete()
 void ATower::RunDelete()
 {
 	DeTouch(0);
-	NiagaraRepeater->DeactivateImmediate();
-	NiagaraRepeater->SetAsset(LoadObject<UNiagaraSystem>
+	if (IsValid(NiagaraRepeater))
+	{
+		NiagaraRepeater->DeactivateImmediate();
+		NiagaraRepeater->SetAsset(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Buildings/FX/NI_Builder.NI_Builder'")));
-	NiagaraRepeater->Activate();
+		NiagaraRepeater->Activate();
+	}
+	
 	if (IsValid(BoomActor))
 	{
 		BoomActor->CreateBoomFunc(GetActorLocation(), FRotator::ZeroRotator,
@@ -894,9 +889,12 @@ void ATower::RunDelete()
 }
 
 
+
+
 //"Reset the parameters"---------------------------------------------------------------------------------------->
 void ATower::NetOff()
 {
+	NiagaraNet->SetEmitterEnable("StaticBeam", false);
 	NiagaraNet->DeactivateImmediate();
 	Wave = 0;
 	MaxWave = 0;
@@ -1027,12 +1025,66 @@ void ATower::CreateGun(int Type, int Number)
 			}
 			MyGun->SpawnFunc(MyColor);
 			SetDamageFunc();
+			GunNum = FMath::Min(GunNum + 1, 3);
+			if (Type == 2)
+			{
+				HaveLowGun = true;
+			}
+			if (IsValid(TW) && TW->IsInViewport())
+			{
+				TW->StartEvent();
+			}
 			MyGun = nullptr;
 		}
 	}
 	TargetGun = nullptr;
 	Gun = nullptr;
 }
+
+
+
+
+void ATower::CanFire(bool CanFire, bool bNeedStop, bool bNeedStart)
+{
+	if (!IsValid(UpGun) || !IsValid(MidGun) || !IsValid(LowGun))
+	{
+		return;
+	}
+
+	TArray<UChildActorComponent*> TGuns;
+	TGuns.Add(UpGun);
+	TGuns.Add(MidGun);
+	TGuns.Add(LowGun);
+
+	AGun* MyGun;
+
+	for (int i = 0; i < TGuns.Num(); i++)
+	{
+		if (IsValid(TGuns[i]) && IsValid(TGuns[i]->GetChildActor()))
+		{
+			MyGun = Cast<AGun>(TGuns[i]->GetChildActor());
+			if (IsValid(MyGun))
+			{
+				MyGun->IsShieldOn = !CanFire;
+				if (bNeedStop && IsValid(MyGun->DMaterial) && IsValid(GInstance))
+				{
+					MyGun->Stop();
+					MyGun->DMaterial->SetVectorParameterValue(TEXT("LightParam"), GInstance->DefaultColor);
+					MyGun->DMaterial->SetScalarParameterValue(TEXT("Param_EmissiveMultiply"), 0.0f);
+				}
+				if (bNeedStart)
+				{
+					MyGun->SpawnFunc(MyColor);
+				}
+			}
+		}
+
+	}
+
+	TGuns.Empty(0);
+	MyGun = nullptr;
+}
+
 
 
 
@@ -1052,14 +1104,87 @@ void ATower::DeleteGun(int Type)
 	{
 		AGun* MyGun = Cast<AGun>(TargetGun->GetChildActor());
 		MyGun->DeleteFunc();
+		GunNum = FMath::Max(GunNum - 1, 0);
+		if (Type == 2)
+		{
+			HaveLowGun = false;
+			IsAuto = false;
+		}
+		if (IsValid(TW) && TW->IsInViewport())
+		{
+			TW->StartEvent();
+		}
 		MyGun = nullptr;
 	}
 	TargetGun = nullptr;
 }
 
 
+void ATower::SetAutoFire(bool AutoFire)
+{
+	if (!(IsValid(LowGun) && IsValid(LowGun->GetChildActor())))
+	{
+		return;
+	}
+	IsAuto = AutoFire;
+	ATGun2* MyGun = Cast<ATGun2>(LowGun->GetChildActor());
+	if (!IsValid(MyGun))
+	{
+		return;
+	}
+	if (MyGun->IsFirst)
+	{
+		MyGun->IsAuto = IsAuto;
+	}
+	else
+	{
+		MyGun->SetAuto(IsAuto);
+	}
+}
 
 
+void ATower::SetAimComponents()
+{
+	if (!IsValid(BoomActor))
+	{
+		return;
+	}
+
+	if (IsValid(LowGun) && IsValid(LowGun->GetChildActor()) && HaveLowGun)
+	{
+		ATGun2* Gun = Cast<ATGun2>(LowGun->GetChildActor());
+		BoomActor->CreateAimFunc(Gun->SetAimsArray());
+	}
+}
+
+
+void ATower::UnSetAimComponents()
+{
+	if (IsValid(BoomActor))
+	{
+		BoomActor->DeleteAimFunc();
+	}
+}
+
+
+void ATower::TargetAim(UPrimitiveComponent* Component)
+{
+	if (IsValid(LowGun) && IsValid(LowGun->GetChildActor()) && HaveLowGun)
+	{
+		ATGun2* Gun = Cast<ATGun2>(LowGun->GetChildActor());
+		Gun->SetAim(Component);
+	}
+}
+
+
+void ATower::OnOffTargetEffect(bool On)
+{
+	if (IsValid(LowGun) && IsValid(LowGun->GetChildActor()) && HaveLowGun)
+	{
+		ATGun2* Gun = Cast<ATGun2>(LowGun->GetChildActor());
+		Gun->OnOffTagret(On);
+	}
+}
 
 
 
@@ -1112,7 +1237,7 @@ void ATower::BeginPlay()
 			}
 			UWidgets.Empty();
 			Actors.Empty();
-		}, 0.1f, false);
+		}, 0.2f, false);
 
 	GetWorldTimerManager().SetTimer(Timer3, [this]()
 		{
@@ -1124,12 +1249,12 @@ void ATower::BeginPlay()
 					GMode->PlayerEnergy = FMath::Max(0, GMode->PlayerEnergy - EnergyLoss);
 					a = GMode->PlayerEnergy;
 				}
-				if (Name == FName(TEXT("YourEnemy")))
+				else if (Name == FName(TEXT("YourEnemy")))
 				{
 					GMode->EnemyEnergy = FMath::Max(0, GMode->EnemyEnergy - EnergyLoss);
 					a = GMode->EnemyEnergy;
 				}
-				if (a < 10)
+				if (a < EnergyLoss)
 				{
 					ShieldCreate();
 				}
@@ -1157,17 +1282,19 @@ void ATower::BeginPlay()
 
 
 
-void ATower::Destroyed()
+void ATower::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
 	GetWorldTimerManager().ClearTimer(Timer2);
 	GetWorldTimerManager().ClearTimer(Timer3);
+	//GetWorldTimerManager().ClearTimer(Timer4);
 
 	//Timers in Main
 	GetWorldTimerManager().ClearTimer(Timer010);
 	GetWorldTimerManager().ClearTimer(Timer011);
 	GetWorldTimerManager().ClearTimer(Timer012);
-	
-	Super::Destroyed();
+	GetWorldTimerManager().ClearTimer(Timer013);
+
+	Super::EndPlay(EndPlayReason);
 }

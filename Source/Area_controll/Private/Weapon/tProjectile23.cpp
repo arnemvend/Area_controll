@@ -332,13 +332,14 @@ void AtProjectile23::OnNiagaraSystemFinished(UNiagaraComponent* NiagaraComponent
 
 
 
-void AtProjectile23::Destroyed()
+
+void AtProjectile23::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(StartTimer);
 	GetWorldTimerManager().ClearTimer(MoveTimer);
 	GetWorldTimerManager().ClearTimer(DamageTimer);
 	GetWorldTimerManager().ClearTimer(LifeTimer);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 

@@ -3,7 +3,7 @@
 
 #include "Wild.h"
 #include "Boom.h"
-#include "NiagaraComponent.h"
+//#include "NiagaraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/ChildActorComponent.h"
 #include "Components/SplineComponent.h"
@@ -365,14 +365,15 @@ void AWild::Tick(float DeltaTime)
 
 
 
-void AWild::Destroyed()
+
+void AWild::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(CreateTimer);
 	GetWorldTimerManager().ClearTimer(MoveTimer);
 	GetWorldTimerManager().ClearTimer(DownTimer);
 	GetWorldTimerManager().ClearTimer(DownStop);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 

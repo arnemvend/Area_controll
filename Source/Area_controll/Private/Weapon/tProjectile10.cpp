@@ -40,6 +40,10 @@ void AtProjectile10::SetDamage()
 void AtProjectile10::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		Sphere->DestroyComponent();

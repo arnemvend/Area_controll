@@ -135,6 +135,10 @@ void AProjectile_1::PostReact(USphereComponent* Sphere, UNiagaraComponent* Niaga
 void AProjectile_1::React(AActor* OtherActor, UPrimitiveComponent* OtherComp, USphereComponent* Sphere,
                           UNiagaraComponent* Niagara, FVector Loc)
 {
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		BoomActor->CreateBoomFunc(Loc, FRotator::ZeroRotator, BoomActor->Proj1BoomSystem[0], FColor::White);
@@ -294,12 +298,13 @@ void AProjectile_1::Tick(float DeltaTime)
 
 
 
-void AProjectile_1::Destroyed()
+
+void AProjectile_1::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 

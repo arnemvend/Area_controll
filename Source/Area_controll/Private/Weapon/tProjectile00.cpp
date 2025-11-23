@@ -82,6 +82,10 @@ void AtProjectile00::BeginPlay()
 void AtProjectile00::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		Sphere->DestroyComponent();
@@ -134,9 +138,9 @@ void AtProjectile00::OnNiagaraSystemFinished(UNiagaraComponent* NiagaraComponent
 
 
 
-void AtProjectile00::Destroyed()
+void AtProjectile00::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer0);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }

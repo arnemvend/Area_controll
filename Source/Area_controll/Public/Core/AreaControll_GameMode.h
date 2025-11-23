@@ -8,7 +8,7 @@
 
 
 class ATower;
-
+class UStaticMesh;
 
 
 UCLASS()
@@ -23,6 +23,9 @@ public:
 	UPROPERTY() TArray<ATower*> PlayerTowers;
 	UPROPERTY() TArray<ATower*> EnemyTowers;
 	UPROPERTY() TArray<ATower*> DisabledTowers;
+
+
+	UPROPERTY() UStaticMesh* RepeaterMesh;
 
 	UPROPERTY() int PlayerEnergy;
 	UPROPERTY() int EnemyEnergy;

@@ -181,5 +181,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2|Gun2") float G2_PrHealth;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighters|Wild2|Gun2") float G2_PrSpeed;
 
+
+
+	UFUNCTION(BlueprintCallable)
+	float GunProperty(int Type, int Number, const FString &PropertyName);
+
 protected:
 };

@@ -181,3 +181,31 @@ UAreaControll_GameInstance::UAreaControll_GameInstance()
 }
 
 
+
+
+
+float UAreaControll_GameInstance::GunProperty(int Type, int Number, const FString& PropertyName)
+{
+	FString FullName = FString::Printf(TEXT("TG%d%d_%s"), Type, Number, *PropertyName);
+
+	FProperty* Property = GetClass()->FindPropertyByName(FName(*FullName));
+
+	if (Property)
+	{
+		float* Value = Property->ContainerPtrToValuePtr<float>(this);
+		if (Value)
+		{
+			return *Value;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+

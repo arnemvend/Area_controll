@@ -22,9 +22,11 @@ APlayerCamera::APlayerCamera()
 
 	//"Set default components"--------------------------------------------------------------------------------------->
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+
 	GamerSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	GamerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	GamerSpringArm->SetupAttachment(RootComponent);
+
+	GamerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	GamerCamera->SetupAttachment(GamerSpringArm);
 
 
@@ -49,33 +51,24 @@ void APlayerCamera::StartTouchMove(FVector2D Loc)
 
 void APlayerCamera::TouchMove(FVector2D Loc)
 {
-	FVector DeltaLoc;
-
-	//check direction and boundaries of the world on the x-axis
-	if(((GetActorLocation().X <= SizeWorld) || ((StartTouchWorldLoc.X - Loc.X) < 0))
-		&& ((GetActorLocation().X >= -SizeWorld) || ((StartTouchWorldLoc.X - Loc.X) > 0)))
+	if (StartTouchWorldLoc == Loc)
 	{
-		DeltaLoc.X = (StartTouchWorldLoc.X - Loc.X) * SpeedCameraMove;
-	}
-	else
-	{
-		DeltaLoc.X = 0;
+		return;
 	}
 
-	//check direction and boundaries of the world on the y-axis
-	if (((GetActorLocation().Y <= SizeWorld) || ((StartTouchWorldLoc.Y - Loc.Y) < 0))
-		&& ((GetActorLocation().Y >= -SizeWorld) || ((StartTouchWorldLoc.Y - Loc.Y) > 0)))
-	{
-		DeltaLoc.Y = (StartTouchWorldLoc.Y - Loc.Y) * SpeedCameraMove;
-	}
-	else
-	{
-		DeltaLoc.Y = 0;
-	}
+	FVector DeltaLoc = FVector::ZeroVector;
+
+	DeltaLoc.X = (StartTouchWorldLoc.X - Loc.X) * SpeedCameraMove;
+	DeltaLoc.Y = (StartTouchWorldLoc.Y - Loc.Y) * SpeedCameraMove;
+
+	float CurrentSize = SizeWorld - Offset;
 	
-	DeltaLoc.Z = 0;
+	FVector NewLoc = GetActorLocation() + DeltaLoc;
+	NewLoc.X = FMath::Clamp(NewLoc.X, -CurrentSize, CurrentSize);
+	NewLoc.Y = FMath::Clamp(NewLoc.Y, -CurrentSize, CurrentSize);
 
-	AddActorWorldOffset(DeltaLoc, false, nullptr, ETeleportType::ResetPhysics);
+	SetActorLocation(NewLoc, false, nullptr, ETeleportType::ResetPhysics);
+	
 	StartTouchWorldLoc = Loc;
 }
 
@@ -84,30 +77,27 @@ void APlayerCamera::TouchMove(FVector2D Loc)
 //"BuildCreator camera move control"------------------------------------------------------------------------------>
 void APlayerCamera::CameraMove(FVector2D Loc, FIntPoint ScreenSize)
 {
-	if ((Loc.X < (ScreenSize.X * 0.08)) && (GetActorLocation().X <= SizeWorld))
+	float CurrentSize = SizeWorld - Offset;
+	if ((Loc.X < (ScreenSize.X * 0.08)) && (GetActorLocation().X <= CurrentSize))
 	{
 		AddActorWorldOffset(GetActorRightVector() * (-1.0f) * SpeedCameraScreen, 
 			false, nullptr, ETeleportType::ResetPhysics);
 	}
-	if ((Loc.Y < (ScreenSize.Y * 0.08)) && (GetActorLocation().Y <= SizeWorld))
+	else if ((Loc.X > (ScreenSize.X * 0.92)) && (GetActorLocation().X >= -CurrentSize))
 	{
-		//AddMovementInput(GetActorForwardVector());
+		AddActorWorldOffset(GetActorRightVector() * SpeedCameraScreen,
+			false, nullptr, ETeleportType::ResetPhysics);
+	}
+	if ((Loc.Y < (ScreenSize.Y * 0.08)) && (GetActorLocation().Y <= CurrentSize))
+	{
 		AddActorWorldOffset(GetActorForwardVector() * SpeedCameraScreen, 
 			false, nullptr, ETeleportType::ResetPhysics);
 	}
-	if ((Loc.X > (ScreenSize.X * 0.92)) && (GetActorLocation().X >= -SizeWorld))
+	else if ((Loc.Y > (ScreenSize.Y * 0.92)) && (GetActorLocation().Y >= -CurrentSize))
 	{
-		AddActorWorldOffset(GetActorRightVector() * SpeedCameraScreen, 
-			false, nullptr, ETeleportType::ResetPhysics);
-		//AddMovementInput(GetActorRightVector());
-	}
-	if ((Loc.Y > (ScreenSize.Y * 0.92)) && (GetActorLocation().Y >= -SizeWorld))
-	{
-		AddMovementInput(GetActorForwardVector(), -1);
 		AddActorWorldOffset(GetActorForwardVector() * (-1.0f) * SpeedCameraScreen, 
 			false, nullptr, ETeleportType::ResetPhysics);
 	}
-	
 }
 
 
@@ -115,20 +105,26 @@ void APlayerCamera::CameraMove(FVector2D Loc, FIntPoint ScreenSize)
 //"Touch camera zoom control"------------------------------------------------------------------------------------->
 void APlayerCamera::CameraZoom(float A)
 {
-	if (A != 0.0f)
+	if (FMath::Abs(A) >= 0.1f)
 	{
-		GamerSpringArm->TargetArmLength = GamerSpringArm->TargetArmLength - (A * SpeedCameraZoom);
-		if (GamerSpringArm->TargetArmLength > LenghtMax)
-		{
-			GamerSpringArm->TargetArmLength = LenghtMax;
-		}
-		if (GamerSpringArm->TargetArmLength < LenghtMin)
-		{
-			GamerSpringArm->TargetArmLength = LenghtMin;
-		}
+		GamerSpringArm->TargetArmLength = FMath::Clamp(GamerSpringArm->TargetArmLength - (A * SpeedCameraZoom), LenghtMin, LenghtMax);
+		SetWorldSizeOffset();
 		SpringArmRotate();
 	}
 }
+
+
+
+
+
+void APlayerCamera::SetWorldSizeOffset()
+{
+	float Alpha = FMath::Clamp((GamerSpringArm->TargetArmLength - LenghtMin) / (LenghtMax - LenghtMin), 0.0f, 1.0f);
+	Offset = FMath::Lerp(MinOffset, MaxOffset, Alpha);
+}
+
+
+
 
 
 //set Y-axis rotate of springarm
@@ -148,6 +144,18 @@ void APlayerCamera::SpringArmRotate()
 void APlayerCamera::BeginPlay()
 {
 	Super::BeginPlay();
+
+	MaxOffset = LenghtMax * FMath::Tan(FMath::DegreesToRadians(GamerCamera->FieldOfView / 2.0f));
+	MinOffset = LenghtMin * FMath::Tan(FMath::DegreesToRadians(GamerCamera->FieldOfView / 2.0f));
+
+	if (FMath::IsNearlyEqual(LenghtMax, LenghtMin))
+	{
+		LenghtMax = LenghtMin + 1000.0f;
+	}
+
+	GamerSpringArm->TargetArmLength = FMath::Clamp(GamerSpringArm->TargetArmLength, LenghtMin, LenghtMax);
+
+	SpringArmRotate();
 }
 
 

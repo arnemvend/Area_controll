@@ -151,7 +151,8 @@ void AWildFabric::BeginPlay()
 
 
 
-void AWildFabric::Destroyed()
+
+void AWildFabric::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer0);
 	if (IsValid(BoomActor) && IsValid(GInstance))
@@ -162,8 +163,9 @@ void AWildFabric::Destroyed()
 
 	CaplsuleComponent->DestroyComponent();
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
+
 
 
 

@@ -124,6 +124,10 @@ void AProjectile_2::BeginPlay()
 void AProjectile_2::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		if (IsValid(BoomActor))
@@ -186,13 +190,14 @@ void AProjectile_2::OnTakeDamage(AActor* DamagedActor, float Damage0, const UDam
 
 
 
-void AProjectile_2::Destroyed()
+
+void AProjectile_2::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(FallTimer);
 	GetWorldTimerManager().ClearTimer(WayTimer);
 	GetWorldTimerManager().ClearTimer(CanLightTimer);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 

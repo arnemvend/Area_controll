@@ -6,8 +6,8 @@
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "NiagaraComponent.h"
-#include "NiagaraSystem.h"
+//#include "NiagaraComponent.h"
+//#include "NiagaraSystem.h"
 #include "Core/AreaControll_GameInstance.h"
 
 
@@ -38,6 +38,8 @@ AProjectile_0::AProjectile_0()
 	InitSpeed = 60.0f;
 }
 
+
+
 // Called when the game starts or when spawned
 void AProjectile_0::BeginPlay()
 {
@@ -60,6 +62,10 @@ void AProjectile_0::BeginPlay()
 void AProjectile_0::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		if (IsValid(BoomActor))
@@ -122,11 +128,15 @@ void AProjectile_0::Tick(float DeltaTime)
 }
 
 
-void AProjectile_0::Destroyed()
+
+
+
+
+void AProjectile_0::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 

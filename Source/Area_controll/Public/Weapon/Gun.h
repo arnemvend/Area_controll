@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Components/TimelineComponent.h"
-#include "GameFramework/Actor.h"
 #include "Gun.generated.h"
 
 
@@ -37,6 +36,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY() bool IsShieldOn;
+	UPROPERTY() bool IsAuto;
+	UPROPERTY() bool IsFirst;
 	UPROPERTY() UMaterialInstanceDynamic* DMaterial;
 
 	UFUNCTION() virtual void Start();
@@ -45,13 +46,15 @@ public:
 	UFUNCTION() void DeleteFunc();
 	UFUNCTION() virtual void TimerElapsed();
 	UFUNCTION() void Stop();
+	
+	
 
 
 protected:
 
 	virtual void BeginPlay() override;
 
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY() UAreaControll_GameInstance* GInstance;
 	UPROPERTY() AAreaControll_GameMode* GMode;
@@ -86,7 +89,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float BaseRotatePlayRate;
 	UPROPERTY() float SpawnDelay;
 
-	UPROPERTY() bool IsFirst;
+
+	UPROPERTY() bool IsLow;
+	UPROPERTY() bool IsReady;
+	UPROPERTY() bool IsFirstFire;
 	UPROPERTY() float CurrentEM;
 
 
@@ -101,6 +107,7 @@ protected:
 	UPROPERTY() FTimerHandle TimerFire;
 	UPROPERTY() FTimerHandle TimerFreeRotate;
 	UPROPERTY() FTimerHandle TimerSpawn;
+	UPROPERTY() FTimerHandle TimerDelay;
 	
 	UPROPERTY() FName CurrentComponentTag;
 
@@ -111,13 +118,16 @@ protected:
 	UFUNCTION() virtual void Tracking();
 	UFUNCTION() virtual void Fire();
 	UFUNCTION() virtual bool ComponentIsFar(UPrimitiveComponent* Component);
-	UFUNCTION() virtual float HorizontalDistance(FVector A, FVector B);
+	UFUNCTION() float HorizontalDistance(FVector A, FVector B);
 	UFUNCTION() virtual void FreeRotate(float Amount);
 	UFUNCTION() virtual void StartRotateTimeline();
+	UFUNCTION() void PauseAimAndFire();
+	UFUNCTION() void DelayBeforFire();
+	UFUNCTION() float SetFirstFireDelay();
 
 	UFUNCTION()
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	
+	UFUNCTION() virtual void OnOverlapLogic(UPrimitiveComponent* OtherComp);
 
 };

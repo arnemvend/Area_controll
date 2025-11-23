@@ -100,12 +100,12 @@ void AtProjectile12::BeginPlay()
 
 
 
-void AtProjectile12::Destroyed()
+void AtProjectile12::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer);
 	GetWorldTimerManager().ClearTimer(DestroyTimer);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 
@@ -128,6 +128,10 @@ void AtProjectile12::DeathFunc()
 void AtProjectile12::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		if (Timer.IsValid() && GetWorldTimerManager().TimerExists(Timer))

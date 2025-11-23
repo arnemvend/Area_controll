@@ -4,10 +4,10 @@
 #include "Weapon/TGun20.h"
 #include "Components/CapsuleComponent.h"
 #include "NiagaraComponent.h"
-#include "NiagaraSystem.h"
+//#include "NiagaraSystem.h"
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"
-#include "Kismet/KismetMathLibrary.h"
+//#include "Kismet/KismetMathLibrary.h"
 #include "Weapon/Projectile.h"
 
 
@@ -22,6 +22,8 @@ ATGun20::ATGun20()
 		(nullptr, TEXT("MaterialInstanceConstant'/Game/Buildings/Materials/MI_TGun20.MI_TGun20'"));
 
 	GunMesh->SetMaterial(0, GunMaterial);
+
+	GunRadius->ComponentTags.Add("Radius");
 
 	SpownProjectile = LoadClass<AProjectile>
 		(nullptr, TEXT("/Game/Weapon/BP_tProjectile20.BP_tProjectile20_C"));
@@ -40,28 +42,28 @@ ATGun20::ATGun20()
 
 
 
-bool ATGun20::ComponentIsFar(UPrimitiveComponent* Component)
+/*bool ATGun20::ComponentIsFar(UPrimitiveComponent* Component)
 {
 	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
 	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0) || Dist <= ExtRadius);
-}
+}*/
 
 
 
-void ATGun20::Rotate(float Amount)
+/*void ATGun20::Rotate(float Amount)
 {
 	Super::Rotate(Amount);
 
 	SetActorRotation(UKismetMathLibrary::RLerp
 	(GetActorRotation(), FRotator(0.0f, Rot.Yaw, 0.0f), Amount, true));
-}
+}*/
 
 
 
 
-void ATGun20::Tracking()
+/*void ATGun20::Tracking()
 {
-}
+}*/
 
 
 

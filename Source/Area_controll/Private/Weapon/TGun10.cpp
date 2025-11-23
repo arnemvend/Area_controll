@@ -4,7 +4,7 @@
 #include "Weapon/TGun10.h"
 #include "Components/CapsuleComponent.h"
 #include "NiagaraComponent.h"
-#include "NiagaraSystem.h"
+//#include "NiagaraSystem.h"
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"
 #include "Kismet/KismetMathLibrary.h"

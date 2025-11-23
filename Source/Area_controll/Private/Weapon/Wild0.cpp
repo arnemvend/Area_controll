@@ -15,7 +15,11 @@ AWild0::AWild0()
 	Mesh->SetMaterial(0, MeshMaterial);
 }
 
-void AWild0::Destroyed()
+
+
+
+
+void AWild0::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (IsValid(BoomActor) && IsValid(Mesh))
 	{
@@ -23,8 +27,12 @@ void AWild0::Destroyed()
 		(Mesh->GetComponentLocation(), FRotator::ZeroRotator, BoomActor->LightBoomSystem[0], Color);
 	}
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
+
+
+
+
 
 void AWild0::BeginPlay()
 {

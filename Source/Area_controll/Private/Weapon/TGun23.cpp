@@ -5,8 +5,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "NiagaraSystem.h"
+//#include "Kismet/KismetMathLibrary.h"
+//#include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
 #include "Weapon/Projectile.h"
 #include "Weapon/tProjectile23.h"
@@ -25,6 +25,8 @@ ATGun23::ATGun23()
 		(nullptr, TEXT("MaterialInstanceConstant'/Game/Buildings/Materials/MI_TGun23.MI_TGun23'"));
 
 	GunMesh->SetMaterial(0, GunMaterial);
+
+	GunRadius->ComponentTags.Add("Radius");
 
 	SpownProjectile = LoadClass<AProjectile>
 		(nullptr, TEXT("/Game/Weapon/BP_tProjectile23.BP_tProjectile23_C"));
@@ -61,32 +63,32 @@ void ATGun23::BeginPlay()
 
 
 
-bool ATGun23::ComponentIsFar(UPrimitiveComponent* Component)
+/*bool ATGun23::ComponentIsFar(UPrimitiveComponent* Component)
 {
 	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
 	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0) || Dist <= ExtRadius);
-}
+}*/
 
 
 
 
 
-void ATGun23::Rotate(float Amount)
+/*void ATGun23::Rotate(float Amount)
 {
 	Super::Rotate(Amount);
 
 	SetActorRotation(UKismetMathLibrary::RLerp
 	(GetActorRotation(), FRotator(0.0f, Rot.Yaw, 0.0f), Amount, true));
-}
+}*/
 
 
 
 
 
 
-void ATGun23::Tracking()
+/*void ATGun23::Tracking()
 {
-}
+}*/
 
 
 

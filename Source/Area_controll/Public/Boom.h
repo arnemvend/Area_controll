@@ -9,6 +9,8 @@
 
 class UNiagaraSystem;
 class UNiagaraComponent;
+class UPrimitiveComponent;
+
 
 
 
@@ -25,6 +27,11 @@ public:
 
 
 	UPROPERTY() UNiagaraComponent* NiagaraComponent;
+	UPROPERTY() TArray<UPrimitiveComponent*> AimCompArr;
+
+	UPROPERTY() TArray<UNiagaraComponent*> AimNComponents;
+
+	UPROPERTY() UNiagaraSystem* AimNSystem;
 
 	UPROPERTY() UNiagaraSystem* ProjT01BoomSystem;
 	UPROPERTY() UNiagaraSystem* ProjT10BoomSystem;
@@ -43,12 +50,12 @@ public:
 
 
 
+	UFUNCTION() void CreateAimFunc(TArray<UPrimitiveComponent*> Components);
+	UFUNCTION() void DeleteAimFunc();
 
 	UFUNCTION() void CreateBoomFunc(FVector Loc, FRotator Rot, UNiagaraSystem* Niagara, FColor Color);
 
 protected:
-
-
 
 	
 };

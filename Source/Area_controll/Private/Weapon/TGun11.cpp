@@ -3,7 +3,7 @@
 
 #include "Weapon/TGun11.h"
 #include "NiagaraComponent.h"
-#include "NiagaraSystem.h"
+//#include "NiagaraSystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"

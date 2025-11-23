@@ -27,7 +27,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) USphereComponent* Sphere;
 

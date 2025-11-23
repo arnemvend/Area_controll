@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "AreaControll_PlayerController.generated.h"
 
+
 class ABuildCreator;
 class AConstruction;
 class AGroundActor;
@@ -25,6 +26,12 @@ public:
 	AAreaControll_PlayerController();
 
 	UPROPERTY() bool CreatorIsHere;
+	UPROPERTY() bool IsTouch1;
+	UPROPERTY() bool IsTouch2;
+	UPROPERTY() bool btest;
+	UPROPERTY() bool IsPinch;
+	UPROPERTY() bool CanPress;
+	//UPROPERTY() bool CanMove;
 
 	UFUNCTION() void SpownCreatorFunc();
 	UFUNCTION() void FindReferences();
@@ -33,7 +40,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void Tick(float DeltaTime) override;
 
@@ -55,11 +62,7 @@ protected:
 	
 
 	
-	UPROPERTY() bool IsPinch;
-	UPROPERTY() bool CanPress;
-	UPROPERTY() bool IsTouch1;
-	UPROPERTY() bool IsTouch2;
-	UPROPERTY() bool CanMove;
+	
 
 
 	UPROPERTY() FTimerHandle Timer0;
@@ -73,11 +76,6 @@ protected:
 
 	UFUNCTION() void OnMouseWheelAxis(float Value); //debug function for editor
 
-	UFUNCTION() void OnPinchAxis(float Value);
-	UFUNCTION() void OnPinchPress();
-	UFUNCTION() void OnPinchReleas();
-
-	UFUNCTION() void OnQuitRelease();
 
 	UFUNCTION() void OnTouchPress(const ETouchIndex::Type FingerIndex, const FVector Loc);
 	UFUNCTION() void OnTouchReleas(const ETouchIndex::Type FingerIndex, const FVector Loc);

@@ -29,8 +29,8 @@ protected:
 	UPROPERTY() float Damage;
 	UPROPERTY() float DownSpeed;
 	UPROPERTY() float DownTime;
-
 	UPROPERTY() int ShootEnergyPrice;
+	UPROPERTY() bool IsFirstCheck;
 
 
 	UPROPERTY() UNiagaraComponent* BoomNiagara;
@@ -44,8 +44,9 @@ protected:
 	virtual void Fire() override;
 	virtual void Tracking() override;
 	virtual void StartRotateTimeline() override;
+	virtual void OnOverlapLogic(UPrimitiveComponent* OtherComp) override;
 
-	UFUNCTION()
+	/*UFUNCTION()
 	void On1OverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
-		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);*/
 };

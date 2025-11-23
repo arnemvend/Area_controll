@@ -97,3 +97,28 @@ UPD
 List of updates:
 - All preliminary weapon variants have been added.
 - Controller update frequency has been increased in test mode.
+
+
+
+---
+UPD
+---
+List of updates:
+- Added new cannon types.
+- Added initial version of the player UI.
+- Added a pause menu.
+- Added initial version of the tower UI.
+- Siege cannons can now switch modes.
+- Siege cannons can now have their target selected.
+- Fixed a crash that occurred when a projectile was destroyed.
+- Reworked camera behavior at the world edges.
+- Adjusted camera response logic.
+
+---
+<div>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/12_AC.jpg" height="350"/>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/13_AC.jpg" height="350"/>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/14_AC.jpg" height="350"/>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/15_AC.jpg" height="350"/>
+<img src="https://github.com/arnemvend/arnemvend/blob/main/images/16_AC.jpg" height="350"/>
+</div>

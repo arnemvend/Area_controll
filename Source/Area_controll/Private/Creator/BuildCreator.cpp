@@ -5,17 +5,15 @@
 #include "Components/CapsuleComponent.h"
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"
+#include "Kismet/GameplayStatics.h"
+#include "Tower/AreaRadius.h"
 
 
 ABuildCreator::ABuildCreator()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	
-
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-
-
 
 	//"Set parameters of Static Mesh"--------------------------------------------------------------------------->
 	MyStaticMesh = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Buildings/Meshes/EnergyTower.EnergyTower'"));
@@ -33,8 +31,6 @@ ABuildCreator::ABuildCreator()
 	StaticMesh0->SetMaterial(0, CreatorMaterial0);
 
 
-	
-	
 
 	//"Set parameters of Trigger"------------------------------------------------------------------------------->
 	TriggerCapsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CollisionComponent"));
@@ -61,6 +57,7 @@ void ABuildCreator::OnOverlapBegin
 (UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	//check Trigger's tag
+
 	if (OtherComp->ComponentHasTag("External"))
 	{
 		ExNumber = FMath::Max(1, ExNumber + 1);
@@ -91,7 +88,18 @@ void ABuildCreator::OnOverlapBegin
 	if (OtherComp->ComponentHasTag("NeutralExternal"))
 	{
 		NeutralComponents.AddUnique(OtherComp);
+		//return;
 	}
+
+	/*if (OtherComp->ComponentHasTag("Radius"))
+	{
+		UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(OtherComp);
+		if (IsValid(Capsule) && IsValid(AreaRadius))
+		{
+			RadiusComponents.AddUnique(Capsule);
+			AreaRadius->SetRadius(0.0f, Capsule->GetScaledCapsuleRadius(),Capsule->GetComponentLocation());
+		}
+	}*/
 }
 
 void ABuildCreator::OnOverlapEnd
@@ -131,7 +139,27 @@ void ABuildCreator::OnOverlapEnd
 	if (OtherComp->ComponentHasTag("NeutralExternal"))
 	{
 		NeutralComponents.RemoveSwap(OtherComp);
+		//return;
 	}
+
+	/*if (OtherComp->ComponentHasTag("Radius"))
+	{
+		RadiusComponents.RemoveSwap(OtherComp);
+		if (RadiusComponents.Num() == 0 && IsValid(AreaRadius))
+		{
+			AreaRadius->Stop();
+		}
+		else
+		{
+			UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(RadiusComponents.Last());
+			if (IsValid(AreaRadius) && IsValid(Capsule))
+			{
+				AreaRadius->SetRadius
+				(0.0f, Capsule->GetScaledCapsuleRadius(), Capsule->GetComponentLocation());
+			}
+			
+		}
+	}*/
 }
 
 
@@ -160,6 +188,7 @@ void ABuildCreator::BeginPlay()
 
 	GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
 	GMode = Cast<AAreaControll_GameMode>(GetWorld()->GetAuthGameMode());
+	AreaRadius = Cast<AAreaRadius>(UGameplayStatics::GetActorOfClass(GetWorld(), AAreaRadius::StaticClass()));
 
 	DynamicMaterial = StaticMesh->CreateDynamicMaterialInstance(0, CreatorMaterial);
 	DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
@@ -168,103 +197,117 @@ void ABuildCreator::BeginPlay()
 
 	//checking the movement
 	GetWorldTimerManager().SetTimer(Timer0, [this]()
+	{
+		if (GetActorLocation().Z < 0.0f)
 		{
-			if (GetActorLocation().Z < 0.0f)
-			{
-				Destroy();
-			}
-		}, 0.1f, false);
+			Destroy();
+		}
+	}, 0.1f, false);
 
 	//checking neutral triggers
 	GetWorldTimerManager().SetTimer(Timer1, [this]()
+	{
+		if (IsValid(GMode) && IsValid(GInstance))
 		{
-			if (IsValid(GMode) && IsValid(GInstance))
+			if (GMode->PlayerEnergy < GInstance->Cn_EnergyPrice)
 			{
-				if (GMode->PlayerEnergy < GInstance->Cn_EnergyPrice)
+				CanBuild = false;
+			}
+			else
+			{
+				CanBuild = true;
+				if (ExNumber > 0 && InNumber == 0 && CanBuild)
 				{
-					CanBuild = false;
+					IsReady = true;
+					NewColor = FLinearColor::Green;
+					DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
+					DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
 				}
-				else
+			}
+		}
+
+		if (ExternalComponents.Num() > 0)
+		{
+			for (int i = ExternalComponents.Num() - 1; i >= 0; --i)
+			{
+				if (!IsValid(ExternalComponents[i]))
 				{
-					CanBuild = true;
+					ExternalComponents.RemoveAtSwap(i);
+					continue;
+				}
+
+				if (IsValid(ExternalComponents[i]) && ExternalComponents[i]->ComponentHasTag("NeutralExternal"))
+				{
+					ExNumber = FMath::Max(0, ExNumber - 1);
+					if (ExNumber == 0 || InNumber > 0)
+					{
+						IsReady = false;
+						NewColor = FLinearColor::Red;
+						DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
+						DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
+					}
+					NeutralComponents.AddUnique(ExternalComponents[i]);
+					ExternalComponents.RemoveAtSwap(i);
+				}
+			}
+		}
+		if (NeutralComponents.Num() > 0)
+		{
+			for (int i = NeutralComponents.Num() - 1; i >= 0; --i)
+			{
+				if (!IsValid(NeutralComponents[i]))
+				{
+					NeutralComponents.RemoveAtSwap(i);
+					continue;
+				}
+
+				if (IsValid(NeutralComponents[i]) && NeutralComponents[i]->ComponentHasTag("External"))
+				{
+					ExNumber = FMath::Max(ExNumber + 1, 1);
 					if (ExNumber > 0 && InNumber == 0 && CanBuild)
 					{
 						IsReady = true;
 						NewColor = FLinearColor::Green;
-						DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
+
+						DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor);
 						DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
 					}
+					ExternalComponents.AddUnique(NeutralComponents[i]);
+					NeutralComponents.RemoveAtSwap(i);
 				}
 			}
-
-			if (ExternalComponents.Num() > 0)
+		}
+		/*if (RadiusComponents.Num() > 0)
+		{
+			for (int i = RadiusComponents.Num() - 1; i >= 0; --i)
 			{
-				for (int i = ExternalComponents.Num() - 1; i >= 0; --i)
+				if (!IsValid(RadiusComponents[i]))
 				{
-					if (!IsValid(ExternalComponents[i]))
-					{
-						ExternalComponents.RemoveAtSwap(i);
-						continue;
-					}
-
-					if (IsValid(ExternalComponents[i]) && ExternalComponents[i]->ComponentHasTag("NeutralExternal"))
-					{
-						ExNumber = FMath::Max(0, ExNumber - 1);
-						if (ExNumber == 0 || InNumber > 0)
-						{
-							IsReady = false;
-							NewColor = FLinearColor::Red;
-							DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor); //set color
-							DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
-						}
-						NeutralComponents.AddUnique(ExternalComponents[i]);
-						ExternalComponents.RemoveAtSwap(i);
-					}
+					RadiusComponents.RemoveAtSwap(i);
 				}
 			}
-			if (NeutralComponents.Num() > 0)
+			if (RadiusComponents.Num() == 0 && IsValid(AreaRadius))
 			{
-				for (int i = NeutralComponents.Num() - 1; i >= 0; --i)
-				{
-					if (!IsValid(NeutralComponents[i]))
-					{
-						NeutralComponents.RemoveAtSwap(i);
-						continue;
-					}
-
-					if (IsValid(NeutralComponents[i]) && NeutralComponents[i]->ComponentHasTag("External"))
-					{
-						ExNumber = FMath::Max(ExNumber + 1, 1);
-						if (ExNumber > 0 && InNumber == 0 && CanBuild)
-						{
-							IsReady = true;
-							NewColor = FLinearColor::Green;
-
-							DynamicMaterial->SetVectorParameterValue(TEXT("CreatorColor"), NewColor);
-							DynamicMaterial0->SetVectorParameterValue(TEXT("Color"), NewColor);
-						}
-						ExternalComponents.AddUnique(NeutralComponents[i]);
-						NeutralComponents.RemoveAtSwap(i);
-					}
-				}
+				AreaRadius->Stop();
 			}
-		}, 0.2f, true, 0.0f);
+		}*/
+	}, 0.2f, true, 0.0f);
 }
 
 
 
 
 
-void ABuildCreator::Destroyed()
+void ABuildCreator::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	
-
 	SetActorLocation(FVector(0.0f, 0.0f, -2000.0f), false, nullptr, ETeleportType::ResetPhysics);
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
+
+
 
 
 

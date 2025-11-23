@@ -1,13 +1,19 @@
-// Copyright (c) Konstantin Pozdeev. All rights reserved.
+﻿// Copyright (c) Konstantin Pozdeev. All rights reserved.
 
 
 #include "HUD/TowerWidget.h"
 #include "Components/Button.h"
+#include "Components/CheckBox.h"
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/HorizontalBox.h"
+#include "Components/Image.h"
+#include "Tower/AreaRadius.h"
 #include "Tower/Tower.h"
-
+//#include "UObject/FastReferenceCollector.h"
 
 
 bool UTowerWidget::Initialize()
@@ -36,6 +42,11 @@ bool UTowerWidget::Initialize()
 	Button_Delete0->OnClicked.AddDynamic(this, &UTowerWidget::Button_Delete0Click);
 	Button_Delete1->OnClicked.AddDynamic(this, &UTowerWidget::Button_Delete1Click);
 	Button_Delete2->OnClicked.AddDynamic(this, &UTowerWidget::Button_Delete2Click);
+	CheckBox_Auto->OnCheckStateChanged.AddDynamic(this, &UTowerWidget::CheckAutoOnChecked);
+	Button_Aim->OnClicked.AddDynamic(this, &UTowerWidget::Button_AimClick);
+	Button_modify->OnClicked.AddDynamic(this, &UTowerWidget::Button_modifyClick);
+
+	IsFirst = true;
 
 	return true;
 }
@@ -43,25 +54,205 @@ bool UTowerWidget::Initialize()
 
 
 
+
+
 void UTowerWidget::StartEvent()
 {
-	if (IsValid(MyTower) && MyTower->ActorHasTag(TEXT("Main")))
+	if (!IsValid(MyTower))
 	{
-		Button_Repeater->SetIsEnabled(false);
-		Button_Repeater->SetVisibility(ESlateVisibility::Collapsed);
-		Button_destroy->SetIsEnabled(false);
-		Button_destroy->SetVisibility(ESlateVisibility::Collapsed);
-		Button_guns->SetIsEnabled(false);
-		Button_guns->SetVisibility(ESlateVisibility::Collapsed);
+		return;
 	}
-	if (IsValid(MyTower) && MyTower->IsRepeater)
+	if (MyTower->ActorHasTag(TEXT("Main")))
 	{
-		Button_Repeater->SetIsEnabled(false);
-		Button_Repeater->SetVisibility(ESlateVisibility::Collapsed);
-		Button_shield->SetIsEnabled(false);
-		Button_shield->SetVisibility(ESlateVisibility::Collapsed);
-		Button_guns->SetIsEnabled(false);
-		Button_guns->SetVisibility(ESlateVisibility::Collapsed);
+		Button_Repeater->SetVisibility(ESlateVisibility::Hidden);
+		Button_destroy->SetVisibility(ESlateVisibility::Hidden);
+		Button_guns->SetVisibility(ESlateVisibility::Hidden);
+		Button_modify->SetVisibility(ESlateVisibility::Hidden);
+	}
+	else if (MyTower->IsRepeater)
+	{
+		Button_Repeater->SetVisibility(ESlateVisibility::Hidden);
+		Button_shield->SetVisibility(ESlateVisibility::Hidden);
+		Button_guns->SetVisibility(ESlateVisibility::Hidden);
+	}
+	else if (MyTower->GunNum > 0)
+	{
+		Button_Repeater->SetVisibility(ESlateVisibility::Hidden);
+		if (MyTower->HaveLowGun)
+		{
+			CheckBox_Auto->SetIsChecked(MyTower->IsAuto);
+			CheckBox_Auto->SetVisibility(ESlateVisibility::Visible);
+			if (!MyTower->IsAuto)
+			{
+				Button_Aim->SetVisibility(ESlateVisibility::Visible);
+			}
+		}
+	}
+	else 
+	{
+		if (!Button_Repeater->IsVisible())
+		{
+			Button_Repeater->SetVisibility(ESlateVisibility::Visible);
+		}
+		CheckBox_Auto->SetVisibility(ESlateVisibility::Hidden);
+		Button_Aim->SetVisibility(ESlateVisibility::Hidden);
+	}
+}
+
+
+
+void UTowerWidget::MoveStyle()
+{
+	if (ActiveButton)
+	{
+		ButtonStyle = ActiveButton->GetStyle();
+		ButtonStyle.Normal = ButtonStyle.Disabled;
+		ButtonStyle.Disabled = ButtonStyle.Hovered;
+		ButtonStyle.Hovered = ButtonStyle.Normal;
+		ActiveButton->SetStyle(ButtonStyle);
+	}
+	if (ActiveGunButton)
+	{
+		ButtonStyle = ActiveGunButton->GetStyle();
+		ButtonStyle.Normal = ButtonStyle.Pressed;
+		ButtonStyle.Pressed = ButtonStyle.Hovered;
+		ButtonStyle.Hovered = ButtonStyle.Normal;
+		ActiveGunButton->SetStyle(ButtonStyle);
+	}
+}
+
+
+void UTowerWidget::MovePriceStyle(UButton*& Button)
+{
+	ButtonPriceStyle = Button->GetStyle();
+	ButtonPriceStyle.Normal = ButtonPriceStyle.Disabled;
+	ButtonPriceStyle.Disabled = ButtonPriceStyle.Hovered;
+	ButtonPriceStyle.Hovered = ButtonPriceStyle.Normal;
+	Button->SetStyle(ButtonPriceStyle);
+}
+
+
+void UTowerWidget::CloseGuns()
+{
+	HorizontalBox_UpGuns->SetVisibility(ESlateVisibility::Collapsed);
+	HorizontalBox_MidGuns->SetVisibility(ESlateVisibility::Collapsed);
+	HorizontalBox_LowGuns->SetVisibility(ESlateVisibility::Collapsed);
+
+	GetWorld()->GetTimerManager().ClearTimer(Timer0);
+	GetWorld()->GetTimerManager().ClearTimer(Timer1);
+	GetWorld()->GetTimerManager().ClearTimer(Timer2);
+
+	if (IsValid(AreaRadius))
+	{
+		AreaRadius->Stop();
+	}
+}
+
+
+bool UTowerWidget::PriceUpdate(bool IsGood, UButton*& Button)
+{
+	bool bExit = false;
+	if (IsGood)
+	{
+		if (UnActiveButtons.Contains(Button))
+		{
+			UnActiveButtons.RemoveSwap(Button);
+			MovePriceStyle(Button);
+			bExit = true;
+		}
+	}
+	else
+	{
+		if (!UnActiveButtons.Contains(Button))
+		{
+			if (ActiveGunButton == Button)
+			{
+				MoveStyle();
+				ActiveGunButton = nullptr;
+			}
+			UnActiveButtons.AddUnique(Button);
+			MovePriceStyle(Button);
+			bExit = true;
+		}
+	}
+	return bExit;
+}
+
+
+void UTowerWidget::ButtonGunFunc(UButton*& Button, UChildActorComponent*& Component, int Type, int Number,
+                                 UHorizontalBox*& Box, UImage*& Image, FTimerHandle& Timer)
+{
+	if (ActiveGunButton == Button)
+	{
+		const bool bHasActiveGun = IsValid(MyTower) &&
+		IsValid(Component) && !IsValid(Component->GetChildActor());
+
+		if (bHasActiveGun)
+		{
+			MyTower->CreateGun(Type, Number);
+		}
+		if (IsValid(AreaRadius))
+		{
+			AreaRadius->Stop();
+		}
+		switch (Type)
+		{
+			case 0: AdressUpGun = Number; break;
+			case 1: AdressMidGun = 10 + Number; break;
+			case 2: AdressLowGun = 20 + Number; break;
+			default: return;
+		}
+
+		FButtonStyle Style = Button->GetStyle();
+		Image->SetBrush(Style.Pressed);
+		
+		Box->SetVisibility(ESlateVisibility::Collapsed);
+		VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+		GetWorld()->GetTimerManager().ClearTimer(Timer);
+	}
+	else
+	{
+		MoveStyle();
+		ActiveGunButton = Button;
+		MoveStyle();
+		
+		if (IsValid(AreaRadius) && IsValid(MyTower) && IsValid(GInstance))
+		{
+			AreaRadius->SetRadius(GInstance->GunProperty(Type, Number, "Radius"), 
+				GInstance->GunProperty(Type, Number, "ExtRadius"),
+				MyTower->GetActorLocation());
+		}
+	}
+}
+
+
+void UTowerWidget::DeleteGunFunc(UButton*& Button, UChildActorComponent*& Component, int Type, UHorizontalBox*& Box)
+{
+	if (ActiveButton == Button)
+	{
+		MoveStyle();
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
+
+		const bool bHasActiveGun = IsValid(MyTower) &&
+		IsValid(Component) && IsValid(Component->GetChildActor());
+		if (bHasActiveGun)
+		{
+			MyTower->DeleteGun(Type);
+			Box->SetVisibility(ESlateVisibility::Collapsed);
+			VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+		}
+
+		if (IsValid(AreaRadius))
+		{
+			AreaRadius->Stop();
+		}
+	}
+	else
+	{
+		MoveStyle();
+		ActiveButton = Button;
+		MoveStyle();
 	}
 }
 
@@ -69,14 +260,25 @@ void UTowerWidget::StartEvent()
 //enables repeater mode for the tower
 void UTowerWidget::Button_RepeaterClick()
 {
-	if (MyTower)
+	if (ActiveButton == Button_Repeater && IsValid(MyTower))
 	{
+		MoveStyle();
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
 		MyTower->Repeater();
-		Button_shield->SetIsEnabled(false);
-		Button_shield->SetVisibility(ESlateVisibility::Collapsed);
-		Button_Repeater->SetIsEnabled(false);
-		Button_Repeater->SetVisibility(ESlateVisibility::Collapsed);
+		Button_shield->SetVisibility(ESlateVisibility::Hidden);
+		Button_Repeater->SetVisibility(ESlateVisibility::Hidden);
+		VerticalBox_Mod->SetVisibility(ESlateVisibility::Collapsed);
 		MyTower->DeTouch(0);
+	}
+	else if (IsValid(MyTower))
+	{
+		VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+		CloseGuns();
+		MoveStyle();
+		ActiveButton = Button_Repeater;
+		MoveStyle();
+		MyTower->UnSetAimComponents();
 	}
 }
 
@@ -84,9 +286,22 @@ void UTowerWidget::Button_RepeaterClick()
 //destroy the tower
 void UTowerWidget::Button_destroyClick()
 {
-	if (IsValid(MyTower))
+	if (ActiveButton == Button_destroy && IsValid(MyTower))
 	{
+		MoveStyle();
+		VerticalBox_Mod->SetVisibility(ESlateVisibility::Collapsed);
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
 		MyTower->RunDelete();
+	}
+	else if (IsValid(MyTower))
+	{
+		VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+		CloseGuns();
+		MoveStyle();
+		ActiveButton = Button_destroy;
+		MoveStyle();
+		MyTower->UnSetAimComponents();
 	}
 }
 
@@ -94,44 +309,75 @@ void UTowerWidget::Button_destroyClick()
 //enables/disables shield
 void UTowerWidget::Button_shieldClick()
 {
+	VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+	VerticalBox_Mod->SetVisibility(ESlateVisibility::Collapsed);
+	CloseGuns();
+	if (ActiveButton)
+	{
+		MoveStyle();
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
+	}
 	if (IsValid(MyTower))
 	{
 		MyTower->ShieldCreate();
+		MyTower->UnSetAimComponents();
 	}
 }
+
+
+
+
+
+void UTowerWidget::Button_modifyClick()
+{
+	if (VerticalBox_Mod->IsVisible())
+	{
+		VerticalBox_Mod->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	else
+	{
+		VerticalBox_Mod->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+	CloseGuns();
+	VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+	if (ActiveButton)
+	{
+		MoveStyle();
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
+	}
+}
+
+
 
 
 //TowerGuns menu enables/disables
 void UTowerWidget::Button_gunsClick()
 {
-	if (Button_UpGun->IsVisible())
+	if (ActiveButton)
 	{
-		Button_UpGun->SetVisibility(ESlateVisibility::Hidden);
-		Button_MidGun->SetVisibility(ESlateVisibility::Hidden);
-		Button_LowGun->SetVisibility(ESlateVisibility::Hidden);
+		MoveStyle();
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
+	}
+	VerticalBox_Mod->SetVisibility(ESlateVisibility::Collapsed);
+	if (VerticalBox_Guns->IsVisible())
+	{
+		VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+		CloseGuns();
 	}
 	else
 	{
-		Button_UpGun->SetVisibility(ESlateVisibility::Visible);
-		Button_MidGun->SetVisibility(ESlateVisibility::Visible);
-		Button_LowGun->SetVisibility(ESlateVisibility::Visible);
-		Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun03->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun13->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun23->SetVisibility(ESlateVisibility::Hidden);
-		Button_Delete0->SetVisibility(ESlateVisibility::Collapsed);
-		Button_Delete1->SetVisibility(ESlateVisibility::Collapsed);
-		Button_Delete2->SetVisibility(ESlateVisibility::Collapsed);
+		VerticalBox_Guns->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+	if (IsValid(MyTower))
+	{
+		MyTower->UnSetAimComponents();
 	}
 }
+
+
 
 
 //Gun of 0 type menu
@@ -141,69 +387,120 @@ void UTowerWidget::Button_UpGunClick()
 		IsValid(MyTower->UpGun) &&
 		IsValid(MyTower->UpGun->GetChildActor());
 
-	if (!Button_gun00->IsVisible())
+	if (ActiveButton)
 	{
-		Button_gun00->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun01->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun02->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun03->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
+		MoveStyle();
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
+	}
 
-		Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun13->SetVisibility(ESlateVisibility::Hidden);
+	if (!HorizontalBox_UpGuns->IsVisible())
+	{
+		Button_gun00->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun01->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun02->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun03->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_Delete0->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		Image_Up->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
-		Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun23->SetVisibility(ESlateVisibility::Hidden);
+		HorizontalBox_MidGuns->SetVisibility(ESlateVisibility::Collapsed);
+		HorizontalBox_LowGuns->SetVisibility(ESlateVisibility::Collapsed);
+		HorizontalBox_UpGuns->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		HorizontalBox_UpGuns->InvalidateLayoutAndVolatility();
 
-		if (Button_gun00->IsVisible())
+		GetWorld()->GetTimerManager().ClearTimer(Timer1);
+		GetWorld()->GetTimerManager().ClearTimer(Timer2);
+
+		if(bHasActiveGun)
 		{
-			GetWorld()->GetTimerManager().ClearTimer(Timer1);
-			GetWorld()->GetTimerManager().ClearTimer(Timer2);
+			if (IsValid(AreaRadius) && IsValid(MyTower) && IsValid(GInstance))
+			{
+				AreaRadius->SetRadius(GInstance->GunProperty(0, AdressUpGun, "Radius"), 
+				GInstance->GunProperty(0, AdressUpGun, "ExtRadius"),
+				MyTower->GetActorLocation());
+			}
+		}
+		else
+		{
+			if (IsValid(AreaRadius))
+			{
+				AreaRadius->Stop();
+			}
+
 			GetWorld()->GetTimerManager().SetTimer(Timer0, [this]()
+			{
+				if (IsValid(GInstance) && IsValid(GMode))
 				{
-					if (IsValid(GInstance) && IsValid(GMode))
+					bool bGoodPrice = GMode->PlayerEnergy >= GInstance->TG00_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun00))
 					{
-						bool bGoodPrice = GMode->PlayerEnergy >= GInstance->TG00_EnergyPrice;
-						Button_gun00->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG01_EnergyPrice;
-						Button_gun01->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG02_EnergyPrice;
-						Button_gun02->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG03_EnergyPrice;
-						Button_gun03->SetIsEnabled(bGoodPrice);
+						if (bGoodPrice)
+						{
+							Button_gun00->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun00Click);
+						}
+						else
+						{
+							Button_gun00->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun00Click);
+						}
 					}
-				}, 0.2f, true, 0.0f);
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG01_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun01))
+					{
+						if (bGoodPrice)
+						{
+							Button_gun01->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun01Click);
+						}
+						else
+						{
+							Button_gun01->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun01Click);
+						}
+					}
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG02_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun02))
+					{
+						if (bGoodPrice)
+						{
+							Button_gun02->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun02Click);
+						}
+						else
+						{
+							Button_gun02->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun02Click);
+						}
+					}
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG03_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun03))
+					{
+						if (bGoodPrice)
+						{
+							Button_gun03->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun03Click);
+						}
+						else
+						{
+							Button_gun03->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun03Click);
+						}
+					}
+						
+				}
+			}, 0.2f, true, 0.0f);	
 		}
 	}
 	else
 	{
-		Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun03->SetVisibility(ESlateVisibility::Hidden);
+		HorizontalBox_UpGuns->SetVisibility(ESlateVisibility::Collapsed);
 
 		GetWorld()->GetTimerManager().ClearTimer(Timer0);
 		GetWorld()->GetTimerManager().ClearTimer(Timer1);
 		GetWorld()->GetTimerManager().ClearTimer(Timer2);
-	}
-	if (!Button_Delete0->IsVisible())
-	{
-		Button_Delete0->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
-		Button_Delete1->SetVisibility(ESlateVisibility::Collapsed);
-
-		Button_Delete2->SetVisibility(ESlateVisibility::Collapsed);
+		if (IsValid(AreaRadius))
+		{
+			AreaRadius->Stop();
+		}
 	}
-	else
-	{
-		Button_Delete0->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	
 }
 
 
@@ -215,70 +512,120 @@ void UTowerWidget::Button_MidGunClick()
 		IsValid(MyTower->MidGun) &&
 		IsValid(MyTower->MidGun->GetChildActor());
 
-	if (!Button_gun10->IsVisible())
+	if (ActiveButton)
 	{
-		Button_gun10->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun11->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun12->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun13->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
+		MoveStyle();
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
+	}
 
-		Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun03->SetVisibility(ESlateVisibility::Hidden);
+	if (!HorizontalBox_MidGuns->IsVisible())
+	{
+		Button_gun10->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun11->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun12->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun13->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_Delete1->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		Image_Mid->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
-		Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun23->SetVisibility(ESlateVisibility::Hidden);
+		HorizontalBox_UpGuns->SetVisibility(ESlateVisibility::Collapsed);
+		HorizontalBox_LowGuns->SetVisibility(ESlateVisibility::Collapsed);
+		HorizontalBox_MidGuns->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		HorizontalBox_MidGuns->InvalidateLayoutAndVolatility();
 
-		if (Button_gun10->IsVisible())
+		GetWorld()->GetTimerManager().ClearTimer(Timer0);
+		GetWorld()->GetTimerManager().ClearTimer(Timer2);
+
+		if (bHasActiveGun)
 		{
-			GetWorld()->GetTimerManager().ClearTimer(Timer0);
-			GetWorld()->GetTimerManager().ClearTimer(Timer2);
+			if (IsValid(AreaRadius) && IsValid(MyTower) && IsValid(GInstance))
+			{
+				AreaRadius->SetRadius(GInstance->GunProperty(1, AdressMidGun % 10, "Radius"), 
+				GInstance->GunProperty(1, AdressMidGun % 10, "ExtRadius"),
+				MyTower->GetActorLocation());
+			}
+		}
+		else
+		{
+			if (IsValid(AreaRadius))
+			{
+				AreaRadius->Stop();
+			}
+
 			GetWorld()->GetTimerManager().SetTimer(Timer1, [this]()
+			{
+				if (IsValid(GInstance) && IsValid(GMode))
 				{
-					if (IsValid(GInstance) && IsValid(GMode))
+					bool bGoodPrice = GMode->PlayerEnergy >= GInstance->TG10_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun10))
 					{
-						bool bGoodPrice = GMode->PlayerEnergy >= GInstance->TG10_EnergyPrice;
-						Button_gun10->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG11_EnergyPrice;
-						Button_gun11->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG12_EnergyPrice;
-						Button_gun12->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG13_EnergyPrice;
-						Button_gun13->SetIsEnabled(bGoodPrice);
+						if (bGoodPrice)
+						{
+							Button_gun10->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun10Click);
+						}
+						else
+						{
+							Button_gun10->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun10Click);
+						}
 					}
-				}, 0.2f, true, 0.0f);
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG11_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun11))
+					{
+						if (bGoodPrice)
+						{
+							Button_gun11->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun11Click);
+						}
+						else
+						{
+							Button_gun11->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun11Click);
+						}
+					}
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG12_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun12))
+					{
+						if (bGoodPrice)
+						{
+								Button_gun12->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun12Click);
+						}
+						else
+						{
+							Button_gun12->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun12Click);
+						}
+					}
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG13_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun13))
+					{
+						if (bGoodPrice)
+						{
+							Button_gun13->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun13Click);
+						}
+						else
+						{
+							Button_gun13->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun13Click);
+						}
+					}
+				}
+			}, 0.2f, true, 0.0f);
 		}
 	}
 	else
 	{
-		Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun13->SetVisibility(ESlateVisibility::Hidden);
+		HorizontalBox_MidGuns->SetVisibility(ESlateVisibility::Collapsed);
 
 		GetWorld()->GetTimerManager().ClearTimer(Timer0);
 		GetWorld()->GetTimerManager().ClearTimer(Timer1);
 		GetWorld()->GetTimerManager().ClearTimer(Timer2);
-	}
-	if (!Button_Delete1->IsVisible())
-	{
-		Button_Delete1->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
-		Button_Delete0->SetVisibility(ESlateVisibility::Collapsed);
-
-		Button_Delete2->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	else
-	{
-		Button_Delete1->SetVisibility(ESlateVisibility::Collapsed);
+		if (IsValid(AreaRadius))
+		{
+			AreaRadius->Stop();
+		}
 	}
 }
+
 
 
 //Gun of 2 type menu
@@ -288,378 +635,256 @@ void UTowerWidget::Button_LowGunClick()
 		IsValid(MyTower->LowGun) &&
 		IsValid(MyTower->LowGun->GetChildActor());
 
-	if (!Button_gun20->IsVisible())
+	if (ActiveButton)
 	{
-		Button_gun20->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun21->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun22->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
-		Button_gun23->SetVisibility(bHasActiveGun ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
+		MoveStyle();
+		ActiveButton = nullptr;
+		ActiveGunButton = nullptr;
+	}
 
-		Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun03->SetVisibility(ESlateVisibility::Hidden);
+	if (!HorizontalBox_LowGuns->IsVisible())
+	{
+		Button_gun20->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun21->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun22->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_gun23->SetVisibility(bHasActiveGun ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		Button_Delete2->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		Image_Low->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
-		Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun13->SetVisibility(ESlateVisibility::Hidden);
+		HorizontalBox_UpGuns->SetVisibility(ESlateVisibility::Collapsed);
+		HorizontalBox_MidGuns->SetVisibility(ESlateVisibility::Collapsed);
+		HorizontalBox_LowGuns->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		HorizontalBox_LowGuns->InvalidateLayoutAndVolatility();
 
-		if (Button_gun20->IsVisible())
+		GetWorld()->GetTimerManager().ClearTimer(Timer0);
+		GetWorld()->GetTimerManager().ClearTimer(Timer1);
+
+		if (bHasActiveGun)
 		{
-			GetWorld()->GetTimerManager().ClearTimer(Timer0);
-			GetWorld()->GetTimerManager().ClearTimer(Timer1);
+			if (IsValid(AreaRadius) && IsValid(MyTower) && IsValid(GInstance))
+			{
+				AreaRadius->SetRadius(GInstance->GunProperty(2, AdressLowGun % 10, "Radius"), 
+				GInstance->GunProperty(2, AdressLowGun % 10, "ExtRadius"),
+				MyTower->GetActorLocation());
+			}
+		}
+		else
+		{
+			if (IsValid(AreaRadius))
+			{
+				AreaRadius->Stop();
+			}
+
 			GetWorld()->GetTimerManager().SetTimer(Timer2, [this]()
+			{
+				if (IsValid(GInstance) && IsValid(GMode))
 				{
-					if (IsValid(GInstance) && IsValid(GMode))
+					bool bGoodPrice = GMode->PlayerEnergy >= GInstance->TG20_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun20))
 					{
-						bool bGoodPrice = GMode->PlayerEnergy >= GInstance->TG20_EnergyPrice;
-						Button_gun20->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG21_EnergyPrice;
-						Button_gun21->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG22_EnergyPrice;
-						Button_gun22->SetIsEnabled(bGoodPrice);
-
-						bGoodPrice = GMode->PlayerEnergy >= GInstance->TG23_EnergyPrice;
-						Button_gun23->SetIsEnabled(bGoodPrice);
+						if (bGoodPrice)
+						{
+							Button_gun20->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun20Click);
+						}
+						else
+						{
+							Button_gun20->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun20Click);
+						}
 					}
-				}, 0.2f, true, 0.0f);
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG21_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun21))
+					{
+						if (bGoodPrice)
+						{
+							Button_gun21->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun21Click);
+						}
+						else
+						{
+							Button_gun21->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun21Click);
+						}
+					}
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG22_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun22))
+					{
+						if (bGoodPrice)
+						{
+							Button_gun22->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun22Click);
+						}
+						else
+						{
+							Button_gun22->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun22Click);
+						}
+					}
+
+					bGoodPrice = GMode->PlayerEnergy >= GInstance->TG23_EnergyPrice;
+					if (PriceUpdate(bGoodPrice, Button_gun23))
+					{
+						if (bGoodPrice)
+						{
+							Button_gun23->OnClicked.AddUniqueDynamic(this, &UTowerWidget::Button_gun23Click);
+						}
+						else
+						{
+							Button_gun23->OnClicked.RemoveDynamic(this, &UTowerWidget::Button_gun23Click);
+						}
+					}
+				}
+			}, 0.2f, true, 0.0f);
 		}
 	}
 	else
 	{
-		Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-		Button_gun23->SetVisibility(ESlateVisibility::Hidden);
+		HorizontalBox_LowGuns->SetVisibility(ESlateVisibility::Collapsed);
 
 		GetWorld()->GetTimerManager().ClearTimer(Timer0);
 		GetWorld()->GetTimerManager().ClearTimer(Timer1);
 		GetWorld()->GetTimerManager().ClearTimer(Timer2);
-		
-	}
-	if (!Button_Delete2->IsVisible())
-	{
-		Button_Delete2->SetVisibility(bHasActiveGun ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 
-		Button_Delete0->SetVisibility(ESlateVisibility::Collapsed);
-
-		Button_Delete1->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	else
-	{
-		Button_Delete2->SetVisibility(ESlateVisibility::Collapsed);
+		if (IsValid(AreaRadius))
+		{
+			AreaRadius->Stop();
+		}
 	}
 }
 
 
+
 void UTowerWidget::Button_gun00Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->UpGun) &&
-		!IsValid(MyTower->UpGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(0, 0);
-	}
-
-	Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun03->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer0);
+	ButtonGunFunc(Button_gun00, MyTower->UpGun, 0, 0, HorizontalBox_UpGuns, Image_Up, Timer0);
 }
 
 
 void UTowerWidget::Button_gun01Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->UpGun) &&
-		!IsValid(MyTower->UpGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(0, 1);
-	}
-
-	Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun03->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer0);
+	ButtonGunFunc(Button_gun01, MyTower->UpGun, 0, 1, HorizontalBox_UpGuns, Image_Up, Timer0);
 }
 
 
 void UTowerWidget::Button_gun02Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->UpGun) &&
-		!IsValid(MyTower->UpGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(0, 2);
-	}
-
-	Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun03->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer0);
+	ButtonGunFunc(Button_gun02, MyTower->UpGun, 0, 2, HorizontalBox_UpGuns, Image_Up, Timer0);
 }
 
 
 void UTowerWidget::Button_gun03Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->UpGun) &&
-		!IsValid(MyTower->UpGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(0, 3);
-	}
-
-	Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun03->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer0);
+	ButtonGunFunc(Button_gun03, MyTower->UpGun, 0, 3, HorizontalBox_UpGuns, Image_Up, Timer0);
 }
 
 
 void UTowerWidget::Button_gun10Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->MidGun) &&
-		!IsValid(MyTower->MidGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(1, 0);
-	}
-
-	Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun13->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer1);
+	ButtonGunFunc(Button_gun10, MyTower->MidGun, 1, 0, HorizontalBox_MidGuns, Image_Mid, Timer1);
 }
 
 
 void UTowerWidget::Button_gun11Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->MidGun) &&
-		!IsValid(MyTower->MidGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(1, 1);
-	}
-
-	Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun13->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer1);
+	ButtonGunFunc(Button_gun11, MyTower->MidGun, 1, 1, HorizontalBox_MidGuns,Image_Mid, Timer1);
 }
 
 
 void UTowerWidget::Button_gun12Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->MidGun) &&
-		!IsValid(MyTower->MidGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(1, 2);
-	}
-
-	Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun13->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer1);
+	ButtonGunFunc(Button_gun12, MyTower->MidGun, 1, 2, HorizontalBox_MidGuns,Image_Mid, Timer1);
 }
 
 
 void UTowerWidget::Button_gun13Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->MidGun) &&
-		!IsValid(MyTower->MidGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(1, 3);
-	}
-
-	Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun13->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer1);
+	ButtonGunFunc(Button_gun13, MyTower->MidGun, 1, 3, HorizontalBox_MidGuns,Image_Mid, Timer1);
 }
 
 
 void UTowerWidget::Button_gun20Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->LowGun) &&
-		!IsValid(MyTower->LowGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(2, 0);
-	}
-
-	Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun23->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer2);
+	ButtonGunFunc(Button_gun20, MyTower->LowGun, 2, 0, HorizontalBox_LowGuns,Image_Low, Timer2);
 }
 
 
 void UTowerWidget::Button_gun21Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->LowGun) &&
-		!IsValid(MyTower->LowGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(2, 1);
-	}
-
-	Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun23->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer2);
+	ButtonGunFunc(Button_gun21, MyTower->LowGun, 2, 1, HorizontalBox_LowGuns,Image_Low, Timer2);
 }
 
 
 void UTowerWidget::Button_gun22Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->LowGun) &&
-		!IsValid(MyTower->LowGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(2, 2);
-	}
-
-	Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun23->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer2);
+	ButtonGunFunc(Button_gun22, MyTower->LowGun, 2, 2, HorizontalBox_LowGuns,Image_Low, Timer2);
 }
 
 
 void UTowerWidget::Button_gun23Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->LowGun) &&
-		!IsValid(MyTower->LowGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->CreateGun(2, 3);
-	}
-
-	Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun23->SetVisibility(ESlateVisibility::Hidden);
-	GetWorld()->GetTimerManager().ClearTimer(Timer2);
+	ButtonGunFunc(Button_gun23, MyTower->LowGun, 2, 3, HorizontalBox_LowGuns,Image_Low, Timer2);
 }
 
 
 void UTowerWidget::Button_Delete0Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->UpGun) &&
-		IsValid(MyTower->UpGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->DeleteGun(0);
-		Button_Delete0->SetVisibility(ESlateVisibility::Hidden);
-	}
+	DeleteGunFunc(Button_Delete0, MyTower->UpGun, 0, HorizontalBox_UpGuns);
 }
 
 
 void UTowerWidget::Button_Delete1Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->MidGun) &&
-		IsValid(MyTower->MidGun->GetChildActor());
-
-	if (bHasActiveGun)
-	{
-		MyTower->DeleteGun(1);
-		Button_Delete1->SetVisibility(ESlateVisibility::Hidden);
-	}
+	DeleteGunFunc(Button_Delete1, MyTower->MidGun, 1, HorizontalBox_MidGuns);
 }
 
 
 void UTowerWidget::Button_Delete2Click()
 {
-	const bool bHasActiveGun = IsValid(MyTower) &&
-		IsValid(MyTower->LowGun) &&
-		IsValid(MyTower->LowGun->GetChildActor());
+	DeleteGunFunc(Button_Delete2, MyTower->LowGun, 2, HorizontalBox_LowGuns);
+}
 
-	if (bHasActiveGun)
+
+void UTowerWidget::CheckAutoOnChecked(bool bCheck)
+{
+	if (IsValid(MyTower))
 	{
-		MyTower->DeleteGun(2);
-		Button_Delete2->SetVisibility(ESlateVisibility::Hidden);
+		MyTower->SetAutoFire(bCheck);
+		MyTower->UnSetAimComponents();
+		MyTower->OnOffTargetEffect(false);
+		VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+		VerticalBox_Mod->SetVisibility(ESlateVisibility::Collapsed);
+		CloseGuns();
+	}
+	Button_Aim->SetVisibility(bCheck ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
+}
+
+
+void UTowerWidget::Button_AimClick()
+{
+	if (IsValid(MyTower) && MyTower->HaveLowGun)
+	{
+		MyTower->SetAimComponents();
+		VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+		VerticalBox_Mod->SetVisibility(ESlateVisibility::Collapsed);
+		CloseGuns();
 	}
 }
 
 
+
 void UTowerWidget::Reset()
 {
-	Button_Repeater->SetIsEnabled(true);
 	Button_Repeater->SetVisibility(ESlateVisibility::Visible);
-	Button_destroy->SetIsEnabled(true);
 	Button_destroy->SetVisibility(ESlateVisibility::Visible);
-	Button_shield->SetIsEnabled(true);
 	Button_shield->SetVisibility(ESlateVisibility::Visible);
-	Button_guns->SetIsEnabled(true);
 	Button_guns->SetVisibility(ESlateVisibility::Visible);
-	Button_UpGun->SetIsEnabled(true);
-	Button_UpGun->SetVisibility(ESlateVisibility::Hidden);
-	Button_MidGun->SetIsEnabled(true);
-	Button_MidGun->SetVisibility(ESlateVisibility::Hidden);
-	Button_LowGun->SetIsEnabled(true);
-	Button_LowGun->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun00->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun01->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun02->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun03->SetVisibility(ESlateVisibility::Hidden);
-	Button_Delete0->SetVisibility(ESlateVisibility::Collapsed);
-	Button_gun10->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun11->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun12->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun13->SetVisibility(ESlateVisibility::Hidden);
-	Button_Delete1->SetVisibility(ESlateVisibility::Collapsed);
-	Button_gun20->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun21->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun22->SetVisibility(ESlateVisibility::Hidden);
-	Button_gun23->SetVisibility(ESlateVisibility::Hidden);
-	Button_Delete2->SetVisibility(ESlateVisibility::Collapsed);
+	Button_modify->SetVisibility(ESlateVisibility::Visible);
+	VerticalBox_Guns->SetVisibility(ESlateVisibility::Collapsed);
+	VerticalBox_Mod->SetVisibility(ESlateVisibility::Collapsed);
+	CheckBox_Auto->SetVisibility(ESlateVisibility::Hidden);
+	Button_Aim->SetVisibility(ESlateVisibility::Hidden);
+	CloseGuns();
 
-	GetWorld()->GetTimerManager().ClearTimer(Timer0);
-	GetWorld()->GetTimerManager().ClearTimer(Timer1);
-	GetWorld()->GetTimerManager().ClearTimer(Timer2);
+	MoveStyle();
+	ActiveButton = nullptr;
+	ActiveGunButton = nullptr;
 }
 
 
@@ -668,17 +893,47 @@ void UTowerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (!IsFirst)
+	{
+		return;
+	}
+
 	GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
 	GMode = Cast<AAreaControll_GameMode>(GetWorld()->GetAuthGameMode());
+	AreaRadius = Cast<AAreaRadius>(UGameplayStatics::GetActorOfClass(GetWorld(), AAreaRadius::StaticClass()));
+
+	if (IsValid(GInstance))
+	{
+		TextBlock_gun00->SetText(FText::AsNumber(GInstance->TG00_EnergyPrice));
+		TextBlock_gun01->SetText(FText::AsNumber(GInstance->TG01_EnergyPrice));
+		TextBlock_gun02->SetText(FText::AsNumber(GInstance->TG02_EnergyPrice));
+		TextBlock_gun03->SetText(FText::AsNumber(GInstance->TG03_EnergyPrice));
+		TextBlock_gun10->SetText(FText::AsNumber(GInstance->TG10_EnergyPrice));
+		TextBlock_gun11->SetText(FText::AsNumber(GInstance->TG11_EnergyPrice));
+		TextBlock_gun12->SetText(FText::AsNumber(GInstance->TG12_EnergyPrice));
+		TextBlock_gun13->SetText(FText::AsNumber(GInstance->TG13_EnergyPrice));
+		TextBlock_gun20->SetText(FText::AsNumber(GInstance->TG20_EnergyPrice));
+		TextBlock_gun21->SetText(FText::AsNumber(GInstance->TG21_EnergyPrice));
+		TextBlock_gun22->SetText(FText::AsNumber(GInstance->TG22_EnergyPrice));
+		TextBlock_gun23->SetText(FText::AsNumber(GInstance->TG23_EnergyPrice));
+	}
+
+	IsFirst = false;
 }
+
 
 
 
 void UTowerWidget::NativeDestruct()
 {
-	Super::NativeDestruct();
-
 	GetWorld()->GetTimerManager().ClearTimer(Timer0);
 	GetWorld()->GetTimerManager().ClearTimer(Timer1);
 	GetWorld()->GetTimerManager().ClearTimer(Timer2);
+
+	if (IsValid(AreaRadius))
+	{
+		AreaRadius->Stop();
+	}
+
+	Super::NativeDestruct();
 }

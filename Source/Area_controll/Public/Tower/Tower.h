@@ -24,7 +24,7 @@ class UNiagaraSystem;
 class UTimelineComponent;
 class UCurveFloat;
 class UTowerWidget;
-class UGameWidget;
+//class UGameWidget;
 
 
 
@@ -51,12 +51,15 @@ public:
 	UPROPERTY() float CurrentEmissive;
 
 	UPROPERTY() int Wave;
+	UPROPERTY() int GunNum;
 	UPROPERTY() TArray<int> AdressTower;
 
 	UPROPERTY() bool IsRepeater;
 	UPROPERTY() bool IsProcessRun;
 	UPROPERTY() bool IsClicked;
 	UPROPERTY() bool CanDamage;
+	UPROPERTY() bool IsAuto;
+	UPROPERTY() bool HaveLowGun;
 
 
 
@@ -68,6 +71,12 @@ public:
 
 	UFUNCTION() void CreateGun(int Type, int Number);
 	UFUNCTION() void DeleteGun(int Type);
+	UFUNCTION() void SetAutoFire(bool AutoFire);
+	UFUNCTION() void SetAimComponents();
+	UFUNCTION() void UnSetAimComponents();
+	UFUNCTION() void TargetAim(UPrimitiveComponent* Component);
+	UFUNCTION() void OnOffTargetEffect(bool On);
+
 
 	//"Logical functions for network search"---------------------------------------------------------------------------->
 	UFUNCTION() void NetOff();
@@ -81,7 +90,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	//"Declare components"-------------------------------------------------------------------------------------->
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Static Mesh") UStaticMeshComponent* TowerMesh;
@@ -153,11 +162,12 @@ protected:
 	UPROPERTY() FTimerHandle Timer010;
 	UPROPERTY() FTimerHandle Timer011;
 	UPROPERTY() FTimerHandle Timer012;
+	UPROPERTY() FTimerHandle Timer013;
 	UPROPERTY() FTimerHandle Timer0;
 	UPROPERTY() FTimerHandle Timer1;
 	UPROPERTY() FTimerHandle Timer2;
 	UPROPERTY() FTimerHandle Timer3;
-
+	//UPROPERTY() FTimerHandle Timer4;
 
 
 
@@ -197,5 +207,6 @@ protected:
 	UFUNCTION() void ShieldProcessOff();
 	UFUNCTION() void ScaleFunc(UStaticMeshComponent* Mesh);
 	UFUNCTION() void CheckShieldansRun(bool IsPlayer, bool ShieldIsOn);
+
 	
 };

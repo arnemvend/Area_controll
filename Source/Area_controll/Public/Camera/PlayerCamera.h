@@ -8,7 +8,7 @@
 
 class USpringArmComponent;
 class UCameraComponent;
-class UInputComponent;
+//class UInputComponent;
 
 
 UCLASS()
@@ -26,6 +26,7 @@ public:
 	UFUNCTION() void TouchMove(FVector2D Loc);
 	UFUNCTION() void CameraMove(FVector2D Loc, FIntPoint ScreenSize);
 	UFUNCTION() void CameraZoom(float A);
+	UFUNCTION(BlueprintCallable) void SetWorldSizeOffset();//in Level BP
 
 
 protected:
@@ -54,6 +55,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Variables") float RotMax;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Variables") float SizeWorld; //in Level BP
 	UPROPERTY() FVector2D StartTouchWorldLoc;
+	UPROPERTY() float MaxOffset;
+	UPROPERTY() float MinOffset;
+	UPROPERTY() float Offset;
 
 	UFUNCTION() void SpringArmRotate();
 

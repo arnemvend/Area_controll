@@ -2,7 +2,6 @@
 
 
 #include "HUD/MainMenu.h"
-
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/Slider.h"
@@ -26,7 +25,9 @@ UMainMenu::UMainMenu(const FObjectInitializer& ObjectInitializer)
 	MainMenuAnimSpeed = 1.0f;
 	SettingsAnimSpeed = 1.0f;
 	QuitAnimSpeed = 1.0f;
-	QuitTextScale = FVector2D(1.3f, 1.3f);
+	QuitTextScale = 1.09f;
+	IsYes = false;
+	IsNo = false;
 }
 
 
@@ -140,6 +141,7 @@ void UMainMenu::Finish_ReverseMainMenuAnim()
 
 void UMainMenu::ToNewLevel()
 {
+	RemoveFromParent();
 	UGameplayStatics::OpenLevel(GetWorld(), TEXT("Level1"));
 }
 
@@ -334,35 +336,55 @@ void UMainMenu::Slider_YesNoProgressChanged(float Value)
 
 	if (Value >= 0.9f)
 	{
-		Text_Y->SetRenderScale(QuitTextScale);
+		if (!IsYes)
+		{
+			IsYes = true;
+			IsNo = false;
+			FontInfo.Size = FontInfo.Size * QuitTextScale;
+			Text_Y->SetFont(FontInfo);
+			FontInfo.Size = FontSize;
+			Text_N->SetFont(FontInfo);
+		}
 	}
 	else if (Value <= 0.1f)
 	{
-		Text_N->SetRenderScale(QuitTextScale);
+		if (!IsNo)
+		{
+			IsYes = false;
+			IsNo = true;
+			FontInfo.Size = FontInfo.Size * QuitTextScale;
+			Text_N->SetFont(FontInfo);
+			FontInfo.Size = FontSize;
+			Text_Y->SetFont(FontInfo);
+		}
 	}
-	else
+	else if (IsYes || IsNo)
 	{
-		Text_Y->SetRenderScale(FVector2D(1.0f, 1.0f));
-		Text_N->SetRenderScale(FVector2D(1.0f, 1.0f));
+		IsYes = false;
+		IsNo = false;
+		FontInfo.Size = FontSize;
+		Text_Y->SetFont(FontInfo);
+		Text_N->SetFont(FontInfo);
 	}
 }
 
 
 void UMainMenu::Slider_YesNoMCaptureEnd()
 {
-	if (Slider_YesNo->GetValue() >= 0.9f)
+	if (/*Slider_YesNo->GetValue() >= 0.9f*/ IsYes)
 	{
 		if (IsValid(PController))
 		{
 			PController->ConsoleCommand("quit");
 		}
 	}
-	else if (Slider_YesNo->GetValue() <= 0.1f)
+	else if (/*Slider_YesNo->GetValue() <= 0.1f*/IsNo)
 	{
 		Slider_YesNo->SetIsEnabled(false);
 
-		Text_Y->SetRenderScale(FVector2D(1.0f, 1.0f));
-		Text_N->SetRenderScale(FVector2D(1.0f, 1.0f));
+		FontInfo.Size = FontSize;
+		Text_Y->SetFont(FontInfo);
+		Text_N->SetFont(FontInfo);
 
 		UnbindFromAnimationFinished(MainMenuAnim, MainMenuEvent);
 		MainMenuEvent.Unbind();
@@ -379,9 +401,10 @@ void UMainMenu::Slider_YesNoMCaptureEnd()
 	else
 	{
 		Slider_YesNo->SetValue(0.5f);
-
-		Text_Y->SetRenderScale(FVector2D(1.0f, 1.0f));
-		Text_N->SetRenderScale(FVector2D(1.0f, 1.0f));
+		NiagaraUpdate(Slider_YesNo->GetValue());
+		FontInfo.Size = FontSize;
+		Text_Y->SetFont(FontInfo);
+		Text_N->SetFont(FontInfo);
 	}
 }
 
@@ -419,6 +442,9 @@ void UMainMenu::NativeConstruct()
 	}
 
 	GMode = Cast<AMainMenu_GameMode>(GetWorld()->GetAuthGameMode());
+
+	FontInfo = Text_Y->GetFont();
+	FontSize = Text_Y->GetFont().Size;
 
 	UGameUserSettings* Settings = GEngine->GetGameUserSettings();
 	int Type = Settings->GetViewDistanceQuality();

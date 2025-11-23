@@ -177,13 +177,42 @@ void AtProjectile11::EndOfWay()
 }
 
 
-void AtProjectile11::Destroyed()
+
+
+
+void AtProjectile11::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
 
-	Super::Destroyed();
+	if (SphereArr.Num() > 0)
+	{
+		for (int n = SphereArr.Num(); n >= 0; --n)
+		{
+			if (SphereArr.IsValidIndex(n) && IsValid(SphereArr[n]))
+			{
+				SphereArr[n]->OnComponentBeginOverlap.Clear();
+				SphereArr[n]->DestroyComponent();
+				SphereArr.RemoveAt(n);
+			}
+		}
+	}
+	if (NiagaraArr.Num() > 0)
+	{
+		for (int m = SphereArr.Num(); m >= 0; --m)
+		{
+			if (NiagaraArr.IsValidIndex(m) && IsValid(NiagaraArr[m]))
+			{
+				NiagaraArr[m]->DeactivateImmediate();
+				NiagaraArr[m]->DestroyInstance();
+				NiagaraArr.RemoveAt(m);
+			}
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
+
 
 
 
@@ -191,7 +220,10 @@ void AtProjectile11::Destroyed()
 void AtProjectile11::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
 		for (int i = 0; i < SphereArr.Num(); i++)

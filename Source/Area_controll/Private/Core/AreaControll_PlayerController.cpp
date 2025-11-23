@@ -22,9 +22,10 @@ AAreaControll_PlayerController::AAreaControll_PlayerController()
 	InitDistance = 0.0f;
 	CreatorIsHere = false; //additional variable for fix of move bug
 	IsPinch = false;
-	CanPress = true;
+	//CanPress = true;
 	IsTouch1 = false;
 	IsTouch2 = false;
+	btest = false;
 }
 
 
@@ -44,13 +45,6 @@ void AAreaControll_PlayerController::FindReferences()
 
 
 
-void AAreaControll_PlayerController::OnQuitRelease()
-{
-	ConsoleCommand("quit");
-}
-
-
-
 
 
 //debug function for editor
@@ -64,87 +58,48 @@ void AAreaControll_PlayerController::OnMouseWheelAxis(float Value)
 
 
 
-
-
-//Camera zoom control------------------------------------------------------------------->
-//update distance between fingers
-void AAreaControll_PlayerController::OnPinchAxis(float Value)
-{
-	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
-	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
-
-	if (IsValid(PlayerCamera) && Value != 0.0f && (!IsValid(BuildCreator) || !CreatorIsHere))
-	{
-		if (IsTouch1 && IsTouch2)
-		{
-			if (InitDistance == 0.0f)
-			{
-				InitDistance = (Loc2 - Loc1).Length();
-			}
-			CurrentDistance = (Loc2 - Loc1).Length();
-			//passing the difference between the new and old values to the camera actor
-			//2.5f is test value. Can will modified.
-			PlayerCamera->CameraZoom(FMath::Clamp(((CurrentDistance - InitDistance) / InitDistance) * 2.5f, -1.0f, 1.0f));
-			InitDistance = CurrentDistance;
-		}
-	}
-}
-
-
-//declare about start pinch action
-void AAreaControll_PlayerController::OnPinchPress()
-{
-	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
-	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
-
-	if (!IsValid(BuildCreator) && !CreatorIsHere)
-	{
-		IsPinch = true;
-		if (CanPress)
-		{
-			InitDistance = 0.0f;
-			CurrentDistance = 0.0f;
-			CanPress = false;//suppress touch action
-		}
-	}
-}
-
-
-//declare about end pinch action
-void AAreaControll_PlayerController::OnPinchReleas()
-{
-	InitDistance = 0.0f;
-	CurrentDistance = 0.0f;
-	//delay before permission touch action
-	GetWorldTimerManager().SetTimer(Timer0, [this]()
-	{
-		CanPress = true;
-		IsPinch = false;
-	}, 0.1f, false);
-}
-
-
-
-
 //Camera move control------------------------------------------------------------------->
 //declare about start touch action
 void AAreaControll_PlayerController::OnTouchPress(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
 	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
+
 	//player can't move camera if BuildCreator is valid
-	if (!IsValid(BuildCreator) && !IsPinch && IsTouch1  && !IsTouch2 && !CreatorIsHere)
+	if (IsValid(BuildCreator) || CreatorIsHere)
+	{
+		return;
+	}
+
+	if (IsTouch1 && IsTouch2)
+	{
+		IsPinch = true;
+		InitDistance = 0.0f;
+		CurrentDistance = 0.0f;
+	}
+	else if (IsTouch1  && !IsTouch2)
 	{
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
 		PlayerCamera->StartTouchMove(Position);
 		MyLoc = Loc;
 	}
+	
 }
+
 
 //declare about end touch action, spown Construction object, destroy BuildCreator object
 void AAreaControll_PlayerController::OnTouchReleas(const ETouchIndex::Type FingerIndex, const FVector Loc)
 {
-	if (IsValid(BuildCreator) && CreatorIsHere)
+	if (FingerIndex == ETouchIndex::Touch2)
+	{
+		InitDistance = 0.0f;
+		CurrentDistance = 0.0f;
+		GetWorldTimerManager().SetTimer(Timer0, [this]()
+			{
+				IsPinch = false;
+			}, 0.1f, false);
+	}
+	else if (IsValid(BuildCreator) && CreatorIsHere)
 	{
 		if (BuildCreator->IsReady && IsValid(SpownedC))
 		{
@@ -176,13 +131,30 @@ void AAreaControll_PlayerController::OnTouchMove(const ETouchIndex::Type FingerI
 	GetInputTouchState(ETouchIndex::Touch1, Loc1.X, Loc1.Y, IsTouch1);
 	GetInputTouchState(ETouchIndex::Touch2, Loc2.X, Loc2.Y, IsTouch2);
 
-	if (!IsValid(BuildCreator) && !IsPinch && IsTouch1 && !IsTouch2 && !CreatorIsHere)
+	if (IsTouch2 && IsTouch1 && !IsValid(BuildCreator) && !CreatorIsHere)
+	{
+		btest = true;
+		IsPinch = true;
+		if (IsValid(PlayerCamera))
+		{
+			if (InitDistance == 0.0f)
+			{
+				InitDistance = (Loc2 - Loc1).Length();
+			}
+			CurrentDistance = (Loc2 - Loc1).Length();
+			//passing the difference between the new and old values to the camera actor
+			//2.5f is test value. Can will modified.
+			PlayerCamera->CameraZoom(FMath::Clamp(((CurrentDistance - InitDistance) * 2.5f / InitDistance), -1.0f, 1.0f));
+			InitDistance = CurrentDistance;
+		}
+	}
+	if (!IsValid(BuildCreator) && !CreatorIsHere && !IsPinch)
 	{
 		//sending the coordinates of the touch to the camera
 		TouchToWorld(Loc.X, Loc.Y, OutActors);
 		PlayerCamera->TouchMove(Position);
 	}
-	if (!IsPinch && IsTouch1 && !IsTouch2 && CreatorIsHere && IsValid(BuildCreator) && BuildCreator->GetActorLocation().Z < 0.0f)
+	else if (CreatorIsHere && IsValid(BuildCreator) && BuildCreator->GetActorLocation().Z < 0.0f && !IsPinch)
 	{
 		//update BuildCreator coordinates
 		BuildCreatorMove(Loc);
@@ -228,8 +200,7 @@ void AAreaControll_PlayerController::TouchToWorld(float X, float Y, TArray<AActo
 //update OutActors
 void AAreaControll_PlayerController::SpownCreatorFunc()
 {
-
-	if (!IsValid(BuildCreator))
+	if (!IsValid(BuildCreator) && !IsTouch2)
 	{
 		const FRotator SpawnRotation = FRotator::ZeroRotator;
 		const FActorSpawnParameters SpawnParams;
@@ -263,11 +234,17 @@ void AAreaControll_PlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (IsValid(BuildCreator) && FVector2D(MyLoc.X, MyLoc.Y) == Loc1 && BuildCreator->GetActorLocation().Z >= 0.0f)
+	if (IsValid(BuildCreator) && !IsTouch2)
 	{
-		BuildCreatorMove(FVector(MyLoc));
+		if (FVector2D(MyLoc.X, MyLoc.Y) == Loc1 && BuildCreator->GetActorLocation().Z >= 0.0f)
+		{
+			BuildCreatorMove(FVector(MyLoc));
+		}
 	}
 }
+
+
+
 
 void AAreaControll_PlayerController::BeginPlay()
 {
@@ -276,13 +253,22 @@ void AAreaControll_PlayerController::BeginPlay()
 	FindReferences();
 }
 
-void AAreaControll_PlayerController::Destroyed()
+
+
+
+
+
+void AAreaControll_PlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
+
+
+
+
 
 
 void AAreaControll_PlayerController::SetupInputComponent()
@@ -290,11 +276,6 @@ void AAreaControll_PlayerController::SetupInputComponent()
 	Super::SetupInputComponent();
 
 	InputComponent->BindAxis("MouseWheel", this, &AAreaControll_PlayerController::OnMouseWheelAxis);
-	InputComponent->BindAxis("Pinch", this, &AAreaControll_PlayerController::OnPinchAxis);
-	
-	InputComponent->BindAction("Pinch", IE_Pressed, this, &AAreaControll_PlayerController::OnPinchPress);
-	InputComponent->BindAction("Pinch", IE_Released, this, &AAreaControll_PlayerController::OnPinchReleas);
-	InputComponent->BindAction("Quit", IE_Released, this, &AAreaControll_PlayerController::OnQuitRelease);
 
 	InputComponent->BindTouch(IE_Pressed, this, &AAreaControll_PlayerController::OnTouchPress);
 	InputComponent->BindTouch(IE_Released, this, &AAreaControll_PlayerController::OnTouchReleas);

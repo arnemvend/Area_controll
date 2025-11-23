@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Weapon/Gun.h"
+#include "Weapon/TGun2.h"
 #include "TGun20.generated.h"
 
 
 
 UCLASS()
-class AREA_CONTROLL_API ATGun20 : public AGun
+class AREA_CONTROLL_API ATGun20 : public ATGun2
 {
 	GENERATED_BODY()
 	
@@ -21,11 +21,11 @@ protected:
 	
 	virtual void BeginPlay() override;
 
-	UPROPERTY() float ExtRadius;
+	/*UPROPERTY() float ExtRadius;
 	UPROPERTY() int ShootEnergyPrice;
 
 	virtual bool ComponentIsFar(UPrimitiveComponent* Component) override;
 	virtual void Rotate(float Amount) override;
-	virtual void Tracking() override;
+	virtual void Tracking() override;*/
 	virtual void Fire() override;
 };

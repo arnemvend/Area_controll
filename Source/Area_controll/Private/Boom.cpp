@@ -4,7 +4,7 @@
 #include "Boom.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
+//#include "NiagaraSystem.h"
 
 
 
@@ -14,7 +14,9 @@ ABoom::ABoom()
 	PrimaryActorTick.bCanEverTick = false;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	
+
+	AimNSystem = LoadObject<UNiagaraSystem>
+		(nullptr, TEXT("NiagaraSystem'/Game/Buildings/FX/NI_AimClick.NI_AimClick'"));
 
 	//Destroy FX for builds
 	BuildBoomSystem.Add(LoadObject<UNiagaraSystem>
@@ -81,6 +83,56 @@ ABoom::ABoom()
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomT23_obj.NI_BoomT23_obj'")));
 }
 
+
+
+
+
+void ABoom::CreateAimFunc(TArray<UPrimitiveComponent*> Components)
+{
+	if (Components.Num() == 0)
+	{
+		return;
+	}
+
+	DeleteAimFunc();
+
+	for (int i = Components.Num() - 1; i >= 0; --i)
+	{
+		if (!IsValid(Components[i]))
+		{
+			Components.RemoveAtSwap(i);
+		}
+		else
+		{
+			FVector Location = Components[i]->GetComponentLocation();
+			Location.Z = 5.0f;
+			AimNComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAttached
+			(AimNSystem, Components[i], NAME_None, Location, FRotator::ZeroRotator, 
+			EAttachLocation::Type::KeepWorldPosition, false));
+			AimCompArr.AddUnique(Components[i]);
+		}
+	}
+}
+
+
+void ABoom::DeleteAimFunc()
+{
+	if (AimNComponents.Num() == 0)
+	{
+		return;
+	}
+
+	for (int i = AimNComponents.Num() - 1; i >= 0; --i)
+	{
+		if (IsValid(AimNComponents[i]))
+		{
+			AimNComponents[i]->DestroyComponent();
+		}
+	}
+
+	AimNComponents.Empty();
+	AimCompArr.Empty();
+}
 
 
 //Launch from an external actor

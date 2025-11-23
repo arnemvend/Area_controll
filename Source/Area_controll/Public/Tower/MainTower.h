@@ -36,7 +36,7 @@ public:
 	UFUNCTION() void CheckEnergy();//Step of area calculating
 	UFUNCTION() void CheckNew(ATower* Tower);
 	UFUNCTION() void ReloadEnergy(FName DName);
-	UFUNCTION() void MainFinder(ATower* TTower);
+	UFUNCTION() void MainFinder();
 	UFUNCTION() void ReFinder(FName BName);
 	UFUNCTION() void NetStart(FColor Color);
 

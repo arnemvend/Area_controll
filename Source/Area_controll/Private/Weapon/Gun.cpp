@@ -8,7 +8,7 @@
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/GameplayStatics.h"
+//#include "Kismet/GameplayStatics.h"
 #include "Weapon/Projectile.h"
 
 
@@ -57,6 +57,10 @@ AGun::AGun()
 	OpasityPower2 = 2.0f;
 	IsShieldOn = false;
 	IsFirst = true;
+	IsFirstFire = false;
+	IsAuto = true;
+	IsLow = false;
+	IsReady = false;
 	BaseRotatePlayRate = 0.5f;
 }
 
@@ -66,18 +70,27 @@ AGun::AGun()
 //set parameters from structure
 void AGun::Start()
 {
-	TLCallback.BindUFunction(this, FName("Rotate"));
-	TLFreeCallback.BindUFunction(this, FName("FreeRotate"));
-	if (CurveFloat)
+	//float FirstFireDelay;
+	if (IsFirst)
 	{
-		RotateTimeLine->AddInterpFloat(CurveFloat, TLCallback);
-		FreeRotateTimeLine->AddInterpFloat(CurveFloat, TLFreeCallback);
-	}
-	TLFinish.BindUFunction(this, FName("FireLogic"));
-	RotateTimeLine->SetTimelineFinishedFunc(TLFinish);
-	FreeRotateTimeLine->SetPlayRate(0.3f);
+		TLCallback.BindUFunction(this, FName("Rotate"));
+		TLFreeCallback.BindUFunction(this, FName("FreeRotate"));
+		if (CurveFloat)
+		{
+			RotateTimeLine->AddInterpFloat(CurveFloat, TLCallback);
+			FreeRotateTimeLine->AddInterpFloat(CurveFloat, TLFreeCallback);
+		}
+		TLFinish.BindUFunction(this, FName("FireLogic"));
+		RotateTimeLine->SetTimelineFinishedFunc(TLFinish);
+		FreeRotateTimeLine->SetPlayRate(0.3f);
 
-	GunRadius->OnComponentBeginOverlap.AddDynamic(this, &AGun::OnOverlapBegin);
+		IsFirst = false;
+	}
+
+	if (IsAuto)
+	{
+		GunRadius->OnComponentBeginOverlap.AddUniqueDynamic(this, &AGun::OnOverlapBegin);
+	}
 
 	//timer by rotate and check aim
 	GetWorldTimerManager().SetTimer(TimerAim, [this]()
@@ -86,25 +99,35 @@ void AGun::Start()
 			{
 				Tracking();
 			}
-
-		}, 0.05f, true, 0.0f);
+		}, 0.05f, !IsLow, 0.0f);
 	GetWorldTimerManager().PauseTimer(TimerAim);
 
 	//timer by firelogic
 	GetWorldTimerManager().SetTimer(TimerFire, [this]()
 	{
-			if (!IsValid(AimComponent)
+			if (IsAuto && (!IsValid(AimComponent)
 				|| (IsValid(AimComponent) && ComponentIsFar(AimComponent))
-				|| (IsValid(AimComponent) && AimComponent->ComponentTags[0] != CurrentComponentTag))
+				|| (IsValid(AimComponent) && AimComponent->ComponentTags[0] != CurrentComponentTag)))
 			{
 				if (IsValid(Niagara->GetAsset()))
 				{
 					Niagara->DeactivateImmediate();
 				}
-				
+
+				//Check overlapped components and move to AimComponents
+				AimComponent = nullptr;
+				AimComponents.Empty();
 				GunRadius->GetOverlappingComponents(OverlappedComponents);
+				
 				if (OverlappedComponents.Num() > 0 && EnemyNames.Num() > 0)
 				{
+					for (int n = OverlappedComponents.Num() - 1; n >= 0; --n)
+					{
+						if (IsValid(OverlappedComponents[n]) && OverlappedComponents[n]->ComponentTags.Num() == 0)
+						{
+							OverlappedComponents.RemoveAtSwap(n);
+						}
+					}
 					for (int i = 0; i < OverlappedComponents.Num(); i++)
 					{
 						for (int k = 0; k < EnemyNames.Num(); k++)
@@ -120,24 +143,26 @@ void AGun::Start()
 					}
 				}
 				OverlappedComponents.Empty();
-				GetWorldTimerManager().PauseTimer(TimerAim);
-				GetWorldTimerManager().PauseTimer(TimerFire);
-				AimComponents.RemoveSwap(AimComponent);
-				AimComponent = nullptr;
+				//PauseAimAndFire();
+
+				//find nearest component
 				if (AimComponents.Num() > 0)
 				{
 					float Distance = 5000.0;
 					for (int i = AimComponents.Num() - 1; i >= 0; --i)
 					{
-						if (!IsValid(AimComponents[i]) ||
-							(IsValid(AimComponents[i]) && ComponentIsFar(AimComponents[i])))
+						if (!IsValid(AimComponents[i]))
 						{
 							AimComponents.RemoveAtSwap(i);
 						}
-						else
+						else if (!ComponentIsFar(AimComponents[i]))
 						{
 							const float Dist = HorizontalDistance(GetActorLocation(), AimComponents[i]->GetComponentLocation());
-							if (Dist < Distance)
+							if (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0f))
+							{
+								AimComponents.RemoveAtSwap(i);
+							}
+							else if (Dist < Distance)
 							{
 								AimComponent = AimComponents[i];
 								CurrentComponentTag = AimComponents[i]->ComponentTags[0];
@@ -145,8 +170,48 @@ void AGun::Start()
 							}
 						}
 					}
-					if (AimComponents.Num() > 0 && IsValid(AimComponent))
+
+					if (IsValid(AimComponent))
 					{
+						PauseAimAndFire();
+						GetWorldTimerManager().ClearTimer(TimerFreeRotate);
+						FreeRotateTimeLine->Stop();
+						StartRotateTimeline();
+					}
+					else if (AimComponents.Num() == 0)
+					{
+						PauseAimAndFire();
+						TimerElapsed();
+						DelayBeforFire();
+					}
+					else
+					{
+						TimerElapsed();
+						DelayBeforFire();
+					}
+				}
+				else
+				{
+					PauseAimAndFire();
+					TimerElapsed();
+					DelayBeforFire();
+				}
+			}
+			else if (!IsShieldOn)
+			{
+				if (IsAuto)
+				{
+					Fire();
+				}
+				else if (IsValid(AimComponent))
+				{
+					if (IsReady)
+					{
+						Fire();
+					}
+					else
+					{
+						PauseAimAndFire();
 						GetWorldTimerManager().ClearTimer(TimerFreeRotate);
 						FreeRotateTimeLine->Stop();
 						StartRotateTimeline();
@@ -154,14 +219,14 @@ void AGun::Start()
 				}
 				else
 				{
+					PauseAimAndFire();
 					TimerElapsed();
+					DelayBeforFire();
+					AimComponent = nullptr;
+					AimComponents.Empty();
 				}
 			}
-			else if (!IsShieldOn)
-			{
-				Fire();
-			}
-	}, Gun_Delay, true, 0.1f);
+	}, Gun_Delay, true, SetFirstFireDelay());
 }
 
 
@@ -190,6 +255,60 @@ void AGun::StartRotateTimeline()
 		RotateTimeLine->PlayFromStart();
 	}
 }
+
+
+
+
+
+void AGun::PauseAimAndFire()
+{
+	if (TimerAim.IsValid())
+	{
+		GetWorldTimerManager().PauseTimer(TimerAim);
+	}
+	if (TimerFire.IsValid())
+	{
+		GetWorldTimerManager().PauseTimer(TimerFire);
+	}
+	IsReady = false;
+}
+
+
+
+
+
+
+void AGun::DelayBeforFire()
+{
+	GetWorldTimerManager().SetTimer(TimerDelay, [this]()
+		{
+			IsFirstFire = true;
+		}, Gun_Delay, false);
+}
+
+
+
+
+
+
+float AGun::SetFirstFireDelay()
+{
+	float Delay = 0.1f;
+	if (IsFirstFire)
+	{
+		IsFirstFire = false;
+	}
+	else
+	{
+		Delay = Gun_Delay;
+	}
+
+	return Delay;
+}
+
+
+
+
 
 
 void AGun::Rotate(float Amount)
@@ -226,6 +345,7 @@ void AGun::FireLogic()
 	{
 		GetWorldTimerManager().UnPauseTimer(TimerFire);
 	}
+	IsReady = true;
 }
 
 
@@ -266,6 +386,12 @@ float AGun::HorizontalDistance(FVector A, FVector B)
 void AGun::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
                           int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	OnOverlapLogic(OtherComp);
+}
+
+
+void AGun::OnOverlapLogic(UPrimitiveComponent* OtherComp)
+{
 	if (EnemyNames.Num() > 0)
 	{
 		for (int i = 0; i < EnemyNames.Num(); i++)
@@ -288,7 +414,6 @@ void AGun::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActo
 		}
 	}
 }
-
 
 
 void AGun::TimerElapsed()
@@ -314,10 +439,8 @@ void AGun::ColorFunc(FColor Color)
 	{
 		return;
 	}
-
 	if (IsFirst)
 	{
-		IsFirst = false;
 		DMaterial = GunMesh->CreateDynamicMaterialInstance(0, GunMaterial);
 		if (IsValid(DMaterial))
 		{
@@ -401,6 +524,8 @@ void AGun::BeginPlay()
 
 	GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
 	GMode = Cast<AAreaControll_GameMode>(GetWorld()->GetAuthGameMode());
+
+	DelayBeforFire();
 }
 
 
@@ -416,15 +541,18 @@ void AGun::Tick(float DeltaTime)
 }
 
 
-void AGun::Destroyed()
+
+
+
+void AGun::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(TimerAim);
 	GetWorldTimerManager().ClearTimer(TimerFire);
 	GetWorldTimerManager().ClearTimer(TimerFreeRotate);
 	GetWorldTimerManager().ClearTimer(TimerSpawn);
+	GetWorldTimerManager().ClearTimer(TimerDelay);
+	
 
-	Super::Destroyed();
-
-
+	Super::EndPlay(EndPlayReason);
 }
 

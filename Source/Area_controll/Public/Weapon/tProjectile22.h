@@ -29,7 +29,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) USphereComponent* Sphere;
 
@@ -42,17 +42,23 @@ protected:
 	UPROPERTY() ABoom* BoomActor;
 
 
+	UPROPERTY() bool IsNameAdded;
+	UPROPERTY() bool CanDestroy;
+
 	UPROPERTY() float Damage;
 	UPROPERTY() float Accurary;
-
 	UPROPERTY() float Time;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float GBoost;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float DTime;
 
-	UPROPERTY() FTimerHandle Timer;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FName NewName;
+
+	UPROPERTY() FTimerHandle Timer0;
 
 
 	UFUNCTION() void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
 		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION() void DestroyFunc();
 };

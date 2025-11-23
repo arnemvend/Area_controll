@@ -7,7 +7,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Core/AreaControll_GameInstance.h"
 #include "Core/AreaControll_GameMode.h"
-#include "Kismet/KismetMathLibrary.h"
+//#include "Kismet/KismetMathLibrary.h"
 #include "Weapon/Projectile.h"
 
 
@@ -24,12 +24,14 @@ ATGun21::ATGun21()
 
 	GunMesh->SetMaterial(0, GunMaterial);
 
+	GunRadius->ComponentTags.Add("Radius");
+
 	SpownProjectile = LoadClass<AProjectile>
 		(nullptr, TEXT("/Game/Weapon/BP_tProjectile21.BP_tProjectile21_C"));
 
-	Niagara->SetAsset(LoadObject<UNiagaraSystem>
+	/*Niagara->SetAsset(LoadObject<UNiagaraSystem>
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_Shoot1.NI_Shoot1'")));
-	Niagara->SetAutoActivate(false);
+	Niagara->SetAutoActivate(false);*/
 
 
 
@@ -42,27 +44,27 @@ ATGun21::ATGun21()
 
 
 
-bool ATGun21::ComponentIsFar(UPrimitiveComponent* Component)
+/*bool ATGun21::ComponentIsFar(UPrimitiveComponent* Component)
 {
 	const float Dist = HorizontalDistance(GetActorLocation(), Component->GetComponentLocation());
 	return (Dist > (GunRadius->GetScaledCapsuleRadius() + 30.0) || Dist <= ExtRadius);
-}
+}*/
 
 
 
-void ATGun21::Rotate(float Amount)
+/*void ATGun21::Rotate(float Amount)
 {
 	Super::Rotate(Amount);
 
 	SetActorRotation(UKismetMathLibrary::RLerp
 	(GetActorRotation(), FRotator(0.0f, Rot.Yaw, 0.0f), Amount, true));
-}
+}*/
 
 
 
-void ATGun21::Tracking()
+/*void ATGun21::Tracking()
 {
-}
+}*/
 
 
 

@@ -99,13 +99,14 @@ void AtProjectile20::OnNiagaraFinished(UNiagaraComponent* FinishedComponent)
 
 
 
-void AtProjectile20::Destroyed()
+
+void AtProjectile20::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer);
 	GetWorldTimerManager().ClearTimer(Timer1);
 	GetWorldTimerManager().ClearTimer(Timer2);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 
@@ -123,6 +124,10 @@ float AtProjectile20::HorizontalDistance(FVector A, FVector B)
 void AtProjectile20::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
 		GetWorldTimerManager().ClearTimer(Timer2);

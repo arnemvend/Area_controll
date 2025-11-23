@@ -23,9 +23,7 @@ AtProjectile22::AtProjectile22()
 	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	Sphere->SetupAttachment(RootComponent);
 	Sphere->SetSphereRadius(4.0f);
-	Sphere->SetCollisionProfileName(TEXT("OverlapAll"));
-	Sphere->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-	Sphere->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AtProjectile22::OnOverlapBegin);
 	
 	Billboard = CreateDefaultSubobject<UMaterialBillboardComponent>(TEXT("MaterialBillboard"));
 	Billboard->SetupAttachment(Sphere);
@@ -43,32 +41,23 @@ AtProjectile22::AtProjectile22()
 
 	EnemyNames.Empty();
 	EnemyNames.Add("WildLighter");
-	EnemyNames.Add("Internal");
 	EnemyNames.Add("InternalEnemy");
 	EnemyNames.Add("InternalWild");
 
-	DTime = 0.04f;
-	GBoost = -3.0f;
-	Time = 0.0f;
-}
+	NewName = "Internal";
 
+	DTime = 0.04f;
+	GBoost = -980.0f;
+	Time = 0.0f;
+	IsNameAdded = false;
+	CanDestroy = false;
+}
 
 
 
 
 void AtProjectile22::Start()
 {
-	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
-	UAreaControll_GameInstance* GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
-	if (IsValid(GInstance))
-	{
-		Damage = GInstance->TG22_Damage;
-		Accurary = GInstance->TG22_Accurary;
-	}
-	GInstance = nullptr;
-
-	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AtProjectile22::OnOverlapBegin);
-
 	const FVector StartLoc = Sphere->GetComponentLocation();
 	Aim = FVector(Aim.X + FMath::FRandRange(-Accurary, Accurary), 
 		Aim.Y + FMath::FRandRange(-Accurary, Accurary), 0.0f);
@@ -91,10 +80,15 @@ void AtProjectile22::Start()
 
 	const float Speed = FMath::Sqrt(QuadroSpeed);
 
-	GetWorldTimerManager().SetTimer(Timer, [this, ForwardZ, Speed, StartLoc, StartForward]()
+	GetWorldTimerManager().SetTimer(Timer0, [this, ForwardZ, Speed, StartLoc, StartForward]()
 		{
-			if (IsValid(Sphere))
+			if (IsValid(this) && IsValid(Sphere))
 			{
+				if (CanDestroy)
+				{
+					Billboard->SetVisibility(false);
+				}
+
 				const float Z = StartLoc.Z + ForwardZ * Speed * Time + GBoost * Time * Time / 2.0f;
 				const float X = StartLoc.X + StartForward.X * Speed * Time;
 				const float Y = StartLoc.Y + StartForward.Y * Speed * Time;
@@ -102,6 +96,12 @@ void AtProjectile22::Start()
 				Sphere->SetWorldLocation(FVector(X, Y, Z), true);
 
 				Time += DTime;
+
+				if (!IsNameAdded && Time >= DTime * 20.0f)
+				{
+					IsNameAdded = true;
+					EnemyNames.AddUnique(NewName);
+				}
 			}
 		}, DTime, true);
 }
@@ -114,42 +114,51 @@ void AtProjectile22::Start()
 void AtProjectile22::BeginPlay()
 {
 	Super::BeginPlay();
+
+	BoomActor = Cast<ABoom>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoom::StaticClass()));
+	UAreaControll_GameInstance* GInstance = Cast<UAreaControll_GameInstance>(GetGameInstance());
+	if (IsValid(GInstance))
+	{
+		Damage = GInstance->TG22_Damage;
+		Accurary = GInstance->TG22_Accurary;
+	}
+	GInstance = nullptr;
 }
 	
 
 
-
-
-void AtProjectile22::Destroyed()
-{
-	GetWorldTimerManager().ClearTimer(Timer);
-
-	Super::Destroyed();
-}
-
+/*
+ A temporary solution to fix the bug. The error occurs whenever there is an attempt to manually call «Destroy()» after the «Overlap» event.
+ */
 
 
 
 void AtProjectile22::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+                                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsValid(OtherActor) || !IsValid(OtherComp) || OtherComp->ComponentTags.Num() == 0 && CanDestroy)
+	{
+		return;
+	}
 	if (OtherComp->ComponentHasTag(TEXT("Ground")))
 	{
+		Sphere->OnComponentBeginOverlap.RemoveDynamic(this, &AtProjectile22::OnOverlapBegin);
 		if (IsValid(BoomActor))
 		{
 			BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->ProjT22BoomSystem[0], FColor::White);
 		}
-		Destroy();
+		CanDestroy = true;
 		return;
 	}
 	if (OtherComp->ComponentHasTag(TEXT("Shield")))
 	{
+		Sphere->OnComponentBeginOverlap.RemoveDynamic(this, &AtProjectile22::OnOverlapBegin);
 		const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), SweepResult.Location);
 		if (IsValid(BoomActor))
 		{
 			BoomActor->CreateBoomFunc(SweepResult.Location, SpawnRotation, BoomActor->Proj0BoomSystem[0], FColor::White);
 		}
-		Destroy();
+		CanDestroy = true;
 		return;
 	}
 	if (EnemyNames.Num() > 0)
@@ -158,13 +167,14 @@ void AtProjectile22::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor*
 		{
 			if (IsValid(OtherComp) && OtherComp->ComponentHasTag(EnemyNames[i]))
 			{
+				Sphere->OnComponentBeginOverlap.RemoveDynamic(this, &AtProjectile22::OnOverlapBegin);
 				UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
 				//spown Boom and destroy
 				if (IsValid(BoomActor))
 				{
 					BoomActor->CreateBoomFunc(SweepResult.Location, FRotator::ZeroRotator, BoomActor->ProjT22BoomSystem[1], FColor::White);
 				}
-				Destroy();
+				CanDestroy = true;
 				return;
 			}
 		}
@@ -173,3 +183,19 @@ void AtProjectile22::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor*
 
 
 
+
+void AtProjectile22::DestroyFunc()
+{
+	GetWorldTimerManager().ClearTimer(Timer0);
+	Sphere->OnComponentBeginOverlap.RemoveDynamic(this, &AtProjectile22::OnOverlapBegin);
+	Destroy();
+}
+
+
+
+void AtProjectile22::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(Timer0);
+
+	Super::EndPlay(EndPlayReason);
+}

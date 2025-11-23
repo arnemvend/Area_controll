@@ -14,6 +14,8 @@ AMainTower::AMainTower()
 	UpGun->DestroyComponent();
 	MidGun->DestroyComponent();
 	LowGun->DestroyComponent();
+
+	NiagaraNet->SetEmitterEnable("Ribbon", false);
 }
 
 
@@ -48,6 +50,7 @@ void AMainTower::CheckNew(ATower* Tower)
 //"Calculation energy pool"------------------------------------------------------------------------------------->
 void AMainTower::CheckEnergy()
 {
+	GetWorldTimerManager().ClearTimer(Timer010);
 	GetWorldTimerManager().SetTimer(Timer010, [this]()
 		{
 			MassEnergy = 0;
@@ -121,9 +124,9 @@ void AMainTower::ReloadEnergy(FName DName)
 
 
 //"Main starts finder's operations"----------------------------------------------------------------------------->
-void AMainTower::MainFinder(ATower* TTower)
+void AMainTower::MainFinder()
 {
-	//set array for towers deactivate them
+	/*//set array for towers deactivate them
 	TArray<ATower*> ActorsOfThisClass = GMode->PlayerTowers;
 	ActorsOfThisClass.Append(GMode->EnemyTowers);
 
@@ -149,13 +152,20 @@ void AMainTower::MainFinder(ATower* TTower)
 		GMode->DisabledTowers.RemoveSwap(TTower);
 		TTower->Destroy();
 		CheckEnergy();
-	}
+	}*/
+	
 
-	NotNet = 0;
-	ReFinder(Name);//search on
-
-	GetWorldTimerManager().SetTimer(Timer011, [this]()
+	GetWorldTimerManager().ClearTimer(Timer013);
+	GetWorldTimerManager().SetTimer(Timer013, [this]()
 	{
+		NotNet = 0;
+		ReFinder(Name);//search on
+
+		GetWorldTimerManager().ClearTimer(Timer011);
+		GetWorldTimerManager().SetTimer(Timer011, [this]()
+		{
+			CheckEnergy();
+
 			if (GMode->DisabledTowers.Num() > 0)
 			{
 				if (Main == this)
@@ -167,7 +177,10 @@ void AMainTower::MainFinder(ATower* TTower)
 					Main->ReFinder(Main->Name);
 				}
 			}
+		}, 0.1f, false);
 	}, 0.1f, false);
+
+	
 }
 
 
@@ -187,8 +200,12 @@ void AMainTower::ReFinder(FName BName)
 		}
 		ReFinder(BName);
 	}
-	Main->CheckEnergy();
+	else
+	{
+		Main->CheckEnergy();
 	MainEnemy->CheckEnergy();
+	}
+	
 }
 
 
@@ -276,7 +293,7 @@ void AMainTower::BeginPlay()
 			{
 				GMode->PlayerEnergy = FMath::Min(GMode->PlayerEnergy + MassEnergy, GMode->PlayerMaxEnergy);
 			}
-			if (ActorHasTag(TEXT("MainEnemy")))
+			else if (ActorHasTag(TEXT("MainEnemy")))
 			{
 				GMode->EnemyEnergy = FMath::Min(GMode->EnemyEnergy + MassEnergy, GMode->EnemyMaxEnergy);
 			}

@@ -13,6 +13,7 @@ class UMaterialInstanceDynamic;
 class UStaticMesh;
 class UAreaControll_GameInstance;
 class AAreaControll_GameMode;
+class AAreaRadius;
 
 
 
@@ -36,7 +37,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void Tick(float DeltaTime) override;
 
@@ -55,6 +56,7 @@ protected:
 
 	UPROPERTY() UAreaControll_GameInstance* GInstance;
 	UPROPERTY() AAreaControll_GameMode* GMode;
+	UPROPERTY() AAreaRadius* AreaRadius;
 	
 	UPROPERTY() FLinearColor NewColor;
 	UPROPERTY() UMaterialInstanceDynamic* DynamicMaterial;
@@ -66,7 +68,7 @@ protected:
 
 	UPROPERTY() TArray<UPrimitiveComponent*> NeutralComponents;
 	UPROPERTY() TArray<UPrimitiveComponent*> ExternalComponents;
-
+	UPROPERTY() TArray<UPrimitiveComponent*> RadiusComponents;
 	
 
 

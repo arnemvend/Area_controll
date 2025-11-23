@@ -31,6 +31,7 @@ AtGun13::AtGun13()
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomT13_obj.NI_BoomT13_obj'"));
 
 	Accurary = 0.0f;
+	IsFirstCheck = true;
 
 	EnemyNames.Empty();
 	EnemyNames.Add("WildLighter");
@@ -41,18 +42,23 @@ AtGun13::AtGun13()
 
 void AtGun13::Start()
 {
-	TLCallback.BindUFunction(this, FName("Rotate"));
-	TLFreeCallback.BindUFunction(this, FName("FreeRotate"));
-	if (CurveFloat)
+	if (IsFirst)
 	{
-		RotateTimeLine->AddInterpFloat(CurveFloat, TLCallback);
-		FreeRotateTimeLine->AddInterpFloat(CurveFloat, TLFreeCallback);
-	}
-	TLFinish.BindUFunction(this, FName("FireLogic"));
-	RotateTimeLine->SetTimelineFinishedFunc(TLFinish);
-	FreeRotateTimeLine->SetPlayRate(0.3f);
+		TLCallback.BindUFunction(this, FName("Rotate"));
+		TLFreeCallback.BindUFunction(this, FName("FreeRotate"));
+		if (CurveFloat)
+		{
+			RotateTimeLine->AddInterpFloat(CurveFloat, TLCallback);
+			FreeRotateTimeLine->AddInterpFloat(CurveFloat, TLFreeCallback);
+		}
+		TLFinish.BindUFunction(this, FName("FireLogic"));
+		RotateTimeLine->SetTimelineFinishedFunc(TLFinish);
+		FreeRotateTimeLine->SetPlayRate(0.3f);
 
-	GunRadius->OnComponentBeginOverlap.AddDynamic(this, &AtGun13::On1OverlapBegin);
+		IsFirst = false;
+	}
+
+	GunRadius->OnComponentBeginOverlap.AddUniqueDynamic(this, &AtGun13::OnOverlapBegin);
 
 
 	//timer by rotate and check aim
@@ -63,7 +69,7 @@ void AtGun13::Start()
 				Tracking();
 			}
 
-		}, 0.05f, true, 0.0f);
+		}, 0.05f, false, 0.0f);
 	GetWorldTimerManager().PauseTimer(TimerAim);
 
 	//timer by firelogic
@@ -77,8 +83,10 @@ void AtGun13::Start()
 				}
 			}
 
-			if (AimComponents.Num() == 0)
+			if (AimComponents.Num() == 0 || IsFirstCheck)
 			{
+				IsFirstCheck = false;
+
 				if (IsValid(Niagara->GetAsset()))
 				{
 					Niagara->Deactivate();
@@ -87,6 +95,13 @@ void AtGun13::Start()
 				GunRadius->GetOverlappingComponents(OverlappedComponents);
 				if (OverlappedComponents.Num() > 0 && EnemyNames.Num() > 0)
 				{
+					for (int n = OverlappedComponents.Num() - 1; n >= 0; --n)
+					{
+						if (IsValid(OverlappedComponents[n]) && OverlappedComponents[n]->ComponentTags.Num() == 0)
+						{
+							OverlappedComponents.RemoveAtSwap(n);
+						}
+					}
 					for (int i = 0; i < OverlappedComponents.Num(); i++)
 					{
 						for (int k = 0; k < EnemyNames.Num(); k++)
@@ -164,10 +179,7 @@ void AtGun13::StartRotateTimeline()
 
 
 
-
-
-void AtGun13::On1OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AtGun13::OnOverlapLogic(UPrimitiveComponent* OtherComp)
 {
 	if (EnemyNames.Num() > 0)
 	{
@@ -191,6 +203,13 @@ void AtGun13::On1OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Other
 		}
 	}
 }
+
+
+/*void AtGun13::On1OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+                              int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	
+}*/
 
 
 

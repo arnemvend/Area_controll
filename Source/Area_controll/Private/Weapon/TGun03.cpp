@@ -28,6 +28,7 @@ ATGun03::ATGun03()
 		(nullptr, TEXT("NiagaraSystem'/Game/Weapon/FX/NI_BoomT03_obj.NI_BoomT03_obj'"));
 
 	Accurary = 0.0f;
+	IsFirstCheck = true;
 
 	EnemyNames.Empty();
 	EnemyNames.Add("WildLighter");
@@ -38,18 +39,23 @@ ATGun03::ATGun03()
 
 void ATGun03::Start()
 {
-	TLCallback.BindUFunction(this, FName("Rotate"));
-	TLFreeCallback.BindUFunction(this, FName("FreeRotate"));
-	if (CurveFloat)
+	if (IsFirst)
 	{
-		RotateTimeLine->AddInterpFloat(CurveFloat, TLCallback);
-		FreeRotateTimeLine->AddInterpFloat(CurveFloat, TLFreeCallback);
-	}
-	TLFinish.BindUFunction(this, FName("FireLogic"));
-	RotateTimeLine->SetTimelineFinishedFunc(TLFinish);
-	FreeRotateTimeLine->SetPlayRate(0.3f);
+		TLCallback.BindUFunction(this, FName("Rotate"));
+		TLFreeCallback.BindUFunction(this, FName("FreeRotate"));
+		if (CurveFloat)
+		{
+			RotateTimeLine->AddInterpFloat(CurveFloat, TLCallback);
+			FreeRotateTimeLine->AddInterpFloat(CurveFloat, TLFreeCallback);
+		}
+		TLFinish.BindUFunction(this, FName("FireLogic"));
+		RotateTimeLine->SetTimelineFinishedFunc(TLFinish);
+		FreeRotateTimeLine->SetPlayRate(0.3f);
 
-	GunRadius->OnComponentBeginOverlap.AddDynamic(this, &ATGun03::On1OverlapBegin);
+		IsFirst = false;
+	}
+
+	GunRadius->OnComponentBeginOverlap.AddUniqueDynamic(this, &ATGun03::OnOverlapBegin);
 	
 
 	//timer by rotate and check aim
@@ -74,8 +80,10 @@ void ATGun03::Start()
 				}
 			}
 
-			if (AimComponents.Num() == 0)
+			if (AimComponents.Num() == 0 || IsFirstCheck)
 			{
+				IsFirstCheck = false;
+
 				if (IsValid(Niagara->GetAsset()))
 				{
 					Niagara->Deactivate();
@@ -84,6 +92,13 @@ void ATGun03::Start()
 				GunRadius->GetOverlappingComponents(OverlappedComponents);
 				if (OverlappedComponents.Num() > 0 && EnemyNames.Num() > 0)
 				{
+					for (int n = OverlappedComponents.Num() - 1; n >= 0; --n)
+					{
+						if (IsValid(OverlappedComponents[n]) && OverlappedComponents[n]->ComponentTags.Num() == 0)
+						{
+							OverlappedComponents.RemoveAtSwap(n);
+						}
+					}
 					for (int i = 0; i < OverlappedComponents.Num(); i++)
 					{
 						for (int k = 0; k < EnemyNames.Num(); k++)
@@ -159,10 +174,7 @@ void ATGun03::StartRotateTimeline()
 }
 
 
-
-
-void ATGun03::On1OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-                              int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ATGun03::OnOverlapLogic(UPrimitiveComponent* OtherComp)
 {
 	if (EnemyNames.Num() > 0)
 	{
@@ -186,6 +198,13 @@ void ATGun03::On1OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Other
 		}
 	}
 }
+
+
+/*void ATGun03::On1OverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+                              int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	
+}*/
 
 
 

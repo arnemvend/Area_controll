@@ -165,11 +165,11 @@ void AConstruction::BeginPlay()
 
 
 
-void AConstruction::Destroyed()
+void AConstruction::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(Timer0);
 	GetWorldTimerManager().ClearTimer(Timer1);
 
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
